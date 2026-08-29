@@ -1,0 +1,114 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: #080808;
+  --color-foreground: #f0ede8;
+  --color-card: #111111;
+  --color-card-foreground: #f0ede8;
+  --color-primary: #c9191e;
+  --color-primary-foreground: #f0ede8;
+  --color-muted: #1a1a1a;
+  --color-muted-foreground: #888888;
+  --color-accent: #c9191e;
+  --color-border: #222222;
+}
+
+html, body {
+  height: 100%;
+  background-color: #080808;
+  color: #f0ede8;
+  cursor: none;
+}
+
+*, *::before, *::after {
+  cursor: none !important;
+}
+
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  font-family: var(--font-inter), sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-dm-serif), serif;
+}
+
+/* Atmospheric Lava Lamp Blobs */
+@keyframes blob1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25%       { transform: translate(8%, 12%) scale(1.08); }
+  50%       { transform: translate(-6%, 20%) scale(0.94); }
+  75%       { transform: translate(12%, 5%) scale(1.05); }
+}
+
+@keyframes blob2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  30%       { transform: translate(-10%, -14%) scale(1.1); }
+  60%       { transform: translate(6%, -8%) scale(0.92); }
+  80%       { transform: translate(-4%, 10%) scale(1.04); }
+}
+
+@keyframes blob3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  20%       { transform: translate(-12%, 8%) scale(1.12); }
+  55%       { transform: translate(8%, -10%) scale(0.9); }
+  80%       { transform: translate(-5%, 14%) scale(1.06); }
+}
+
+@keyframes blob4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  35%       { transform: translate(14%, -16%) scale(1.15); }
+  65%       { transform: translate(-8%, 12%) scale(0.88); }
+}
+
+/* Sequential Left-to-Right Outline Scan: Phase 1 (Software) */
+@keyframes wm-scan-left {
+  0% {
+    mask-position: 100% 0;
+    -webkit-mask-position: 100% 0;
+  }
+  28% {
+    mask-position: 0% 0;
+    -webkit-mask-position: 0% 0;
+  }
+  28.01%, 100% {
+    mask-position: 100% 0;
+    -webkit-mask-position: 100% 0;
+  }
+}
+
+/* Sequential Left-to-Right Outline Scan: Phase 2 (AI Engineer) */
+@keyframes wm-scan-right {
+  0%, 28% {
+    mask-position: 100% 0;
+    -webkit-mask-position: 100% 0;
+  }
+  56% {
+    mask-position: 0% 0;
+    -webkit-mask-position: 0% 0;
+  }
+  56.01%, 100% {
+    mask-position: 100% 0;
+    -webkit-mask-position: 100% 0;
+  }
+}
+
+/* Modal and UI Transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

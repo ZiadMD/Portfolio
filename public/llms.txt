@@ -1,0 +1,57 @@
+# Ziad M. Sheashaa — Software & AI Engineer
+
+> Portfolio and profile of Ziad M. Sheashaa, a Software & AI Engineer building at the intersection of machine learning, computer vision, robotics, and full-stack software development.
+
+- Website: https://ziad-sheashaa.me
+- GitHub: https://github.com/ZiadMD
+- LinkedIn: https://www.linkedin.com/in/ziadmsheashaa
+- Email: ziadmsheashaa@gmail.com
+- Availability: Open to internships, collaborations, and engineering roles (Available Remote).
+
+---
+
+## Core Expertise & Tech Stack
+
+- **Artificial Intelligence & ML**: Python, PyTorch, TensorFlow, Scikit-learn, LangChain, Retrieval-Augmented Generation (RAG), LLM Fine-tuning, Vector Databases.
+- **Computer Vision & Robotics**: OpenCV, Haar Cascades, ROS (Robot Operating System), PID Controllers, Autonomous Navigation.
+- **Software Engineering**: TypeScript, React, Next.js, FastAPI, C++17, Qt6/PySide6, Docker, Git.
+
+---
+
+## Featured Projects
+
+1. **EVER 5th Generation** (Robotics / Autonomous Driving)
+   - Description: AI-powered autonomous truck system combining machine learning, PID controllers, and computer vision for intelligent lane changes.
+   - Technologies: Python, ROS, Autonomous Driving, Computer Vision.
+   - Repository: https://github.com/ZiadMD/EVER_CLoseLoop
+
+2. **NASA 2025 — TERRA** (AI / Climate Science)
+   - Description: Educational web platform using Scikit-learn ML models to predict climate patterns from NASA data, featuring a Gemini API chatbot and interactive simulation game.
+   - Technologies: Next.js, TypeScript, Scikit-learn, Gemini API.
+   - Live Demo: https://spatuim.vercel.app/
+   - Repository: https://github.com/ZiadMD/Nasa-2025
+
+3. **Cat-Dog Classifier** (Deep Learning / Desktop Application)
+   - Description: PySide6 desktop application using TensorFlow for real-time image classification with custom deep learning models.
+   - Technologies: Python, PySide6, TensorFlow, Deep Learning.
+   - Repository: https://github.com/ZiadMD/cat-dog-classifier
+
+4. **Qt-Cascade-app** (Computer Vision / Desktop)
+   - Description: Real-time desktop object detection application built with C++, Qt, and OpenCV using Haar cascade classifiers.
+   - Technologies: C++, Qt, OpenCV, Computer Vision.
+   - Repository: https://github.com/ZiadMD/Qt-Cascade-app
+
+5. **Numerical Analysis App** (Scientific Computing / C++)
+   - Description: Linux-optimized C++17 application implementing numerical analysis algorithms with a Qt6 GUI for root finding and curve fitting.
+   - Technologies: C++, Qt, Linux.
+   - Repository: https://github.com/ZiadMD/Numerical-Analysis-project
+
+6. **Library Management System (LMS)** (Software Engineering / Algorithms)
+   - Description: High-performance data structure management system in C++ using doubly linked lists with custom sorting and searching algorithms.
+   - Technologies: C++, Data Structures, Algorithms.
+   - Repository: https://github.com/ZiadMD/LMS
+
+7. **AuthMaster** (Security / Python)
+   - Description: Desktop authentication system with Python Tkinter featuring SHA-256 password hashing and secure user verification.
+   - Technologies: Python, GUI, SHA-256 Hashing.
+   - Repository: https://github.com/ZiadMD/AuthMaster
