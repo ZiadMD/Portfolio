@@ -34,13 +34,6 @@ export default function Contact() {
             </div>
           ))}
         </div>
-
-        <div className="mt-16 md:mt-20 border-t border-[#222222] pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <p className="text-[#444444] text-xs tracking-wide">
-            © {new Date().getFullYear()} Ziad M. Sheashaa. All rights reserved.
-          </p>
-          <p className="text-[#444444] text-xs tracking-wide">Available Remote</p>
-        </div>
       </div>
     </footer>
   );

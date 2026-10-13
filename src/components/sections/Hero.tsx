@@ -161,15 +161,6 @@ export default function Hero() {
         {/* Base dark canvas */}
         <div className="absolute inset-0 bg-black" style={{ zIndex: 1 }} />
 
-        {/* Studio Background Image */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={PORTRAIT_IMAGES.desktop.bg}
-          alt=""
-          aria-hidden="true"
-          className="absolute bottom-0 left-0 w-full object-cover object-bottom"
-          style={{ zIndex: 2, height: "95%" }}
-        />
 
         {/* 1. Sequential Left-to-Right Scan (Hidden by default, illuminated ONLY as beam sweeps) */}
         <div
@@ -280,16 +271,16 @@ export default function Hero() {
         <img
           src={PORTRAIT_IMAGES.desktop.cutout}
           alt="Ziad M. Sheashaa portrait"
-          className="absolute bottom-0 left-0 w-full object-cover object-bottom"
-          style={{ zIndex: 4, height: "95%" }}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-auto h-[calc(100vh-5rem)] max-w-none object-bottom select-none pointer-events-none"
+          style={{ zIndex: 4 }}
         />
 
         {/* 3-Column Text & Content Overlay */}
         <div
-          className="absolute inset-0 grid grid-cols-[1fr_38%_1fr] items-center px-10 lg:px-16"
-          style={{ zIndex: 5 }}
+          className="absolute inset-0 grid grid-cols-[1fr_38%_1fr] items-end px-10 lg:px-16 pb-12 lg:pb-16"
+          style={{ zIndex: 10 }}
         >
-          <div className="flex flex-col justify-center">
+          <div className="flex flex-col">
             <h1 className="font-display text-[clamp(1.8rem,4vw,4.5rem)] leading-[0.9] tracking-tight text-[#f0ede8] mb-4">
               Ziad M.
               <br />
@@ -316,7 +307,7 @@ export default function Hero() {
           {/* Middle column: clear space for portrait */}
           <div />
           {/* Right column: balanced spacing */}
-          <div className="flex flex-col justify-center items-end text-right" />
+          <div className="flex flex-col justify-end items-end text-right" />
         </div>
 
         {/* Bottom Fade Gradient */}

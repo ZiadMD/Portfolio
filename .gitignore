@@ -52,3 +52,4 @@ Thumbs.db
 /.plugins/
 /.opencode-skills/
 .claude-replay.*
+.specstory/

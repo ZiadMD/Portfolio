@@ -15,10 +15,10 @@ export default function About() {
               <span className="italic text-[#888888]">Software &amp; AI Engineer</span>
             </h2>
             <p className="text-[#888888] text-sm leading-relaxed mb-5">
-              {"I'm a software & AI engineering student building at the intersection of code and intelligence. My work spans ML models, computer vision pipelines, robotics, and full-stack apps."}
+              {"I'm a Software & AI Engineer building at the intersection of code, performance, and intelligence. My work spans machine learning models, computer vision pipelines, robotics, and full-stack systems."}
             </p>
             <p className="text-[#888888] text-sm leading-relaxed">
-              {"I care about building things that actually work — not just impressive in a demo. Still early in the journey, but shipping real projects and learning fast."}
+              {"I focus on engineering reliable, production-ready systems that deliver real-world value — not just demo-level concepts. Passionate about architecting high-impact products and solving hard technical challenges."}
             </p>
           </div>
 
