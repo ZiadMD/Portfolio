@@ -33,9 +33,9 @@ export const SKILLS: string[] = [
 ];
 
 export const CONTACT_LINKS: SocialLink[] = [
-  { label: "Email", value: "ziadmsheashaa@gmail.com", href: "mailto:ziadmsheashaa@gmail.com" },
+  { label: "Email", value: "ziadmohamedgamal25@gmail.com", href: "mailto:ziadmohamedgamal25@gmail.com" },
   { label: "GitHub", value: "@ZiadMD", href: "https://github.com/ZiadMD" },
-  { label: "LinkedIn", value: "Ziad M. Sheashaa", href: "https://www.linkedin.com/in/ziadmsheashaa" },
+  { label: "LinkedIn", value: "Ziad M. Sheashaa", href: "https://www.linkedin.com/in/ziad-sheashaa/" },
   { label: "Location", value: "Available Remote", href: "#" },
 ];
 
