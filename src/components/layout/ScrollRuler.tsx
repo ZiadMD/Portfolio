@@ -99,6 +99,32 @@ function frostMask(solid: number, gamma: number) {
   return `linear-gradient(to left, ${stops.join(", ")})`
 }
 
+interface LabelMetric {
+  adv: number[];
+  cum: number[];
+  total: number;
+}
+
+interface LetterPose {
+  x: number;
+  y: number;
+  rot: number;
+  scale: number;
+  alpha: number;
+}
+
+interface TickItem {
+  pct: number;
+  major: boolean;
+  docY: number;
+}
+
+interface OccupancySpan {
+  top: number;
+  bottom: number;
+  k: number;
+}
+
 const RULER_SECTIONS = [
   { id: "hero", label: "ZIAD", isHero: true },
   { id: "about", label: "ABOUT", isHero: false },
@@ -163,8 +189,7 @@ export default function ScrollRuler({
       probe.style.cssText =
         "position:fixed;left:-9999px;top:0;visibility:hidden;white-space:pre;font-family:var(--disp);font-size:100px;font-weight:700;line-height:1;pointer-events:none;"
       document.body.appendChild(probe)
-      const out: Record<string, { adv: number[] cum: number[] total: number }> =
-        {}
+      const out: Record<string, LabelMetric> = {}
 
       for (const label of labels) {
         probe.textContent = ""
@@ -296,7 +321,7 @@ export default function ScrollRuler({
       wordHits.push(hit)
     })
 
-    const tickRoster: { pct: number major: boolean docY: number }[] = []
+    const tickRoster: TickItem[] = [];
     for (
       let p = 0;
       p <=
@@ -569,7 +594,7 @@ export default function ScrollRuler({
     let lastY = window.scrollY
     let vel = 0
     let lastTime = performance.now()
-    const railOccupancySpans: { top: number bottom: number k: number }[] = []
+    const railOccupancySpans: OccupancySpan[] = [];
     let isRunning = true
 
     function step(now: number) {
@@ -856,48 +881,44 @@ export default function ScrollRuler({
       }
 
       const horizPose = (
-        m: { adv: number[] cum: number[] total: number },
+        m: LabelMetric,
         i: number,
         yLine: number,
         s: number,
         alpha: number,
-      ) => {
-        const along = (m.cum[i] + m.adv[i] / 2) * hp * s
+      ): LetterPose => {
+        const along = (m.cum[i] + m.adv[i] / 2) * hp * s;
         const inward =
-          TUNABLES.railW + TUNABLES.textPad + (m.total * hp * s - along)
-        return { x: vw - inward, y: yLine, rot: 0, scale: s, alpha }
-      }
+          TUNABLES.railW + TUNABLES.textPad + (m.total * hp * s - along);
+        return { x: vw - inward, y: yLine, rot: 0, scale: s, alpha };
+      };
 
       const ridePose = (
-        m: { adv: number[] cum: number[] total: number },
+        m: LabelMetric,
         i: number,
         top: number,
-      ) => ({
+      ): LetterPose => ({
         x: railCenterX,
         y: top + (m.total - m.cum[i] - m.adv[i] / 2) * hp * rs,
         rot: -90,
         scale: rs,
         alpha: TUNABLES.queueAlpha,
-      })
+      });
 
       for (let wi = 0; wi < measured.length; wi++) {
-        const s = measured[wi]
-        const m = metrics[s.label]
-        const letters = wordLetters[wi]
-        const hit = wordHits[wi]
-        if (!m || !letters) continue
+        const s = measured[wi];
+        const m = metrics[s.label];
+        const letters = wordLetters[wi];
+        const hit = wordHits[wi];
+        if (!m || !letters) continue;
 
-        const { v, rideLen, flipP, detachP, yq } = phases[wi]
-        const n = m.adv.length
+        const { v, rideLen, flipP, detachP, yq } = phases[wi];
+        const n = m.adv.length;
 
-        let p,
-          from: (
-            i: number,
-          ) => { x: number y: number rot: number scale: number alpha: number },
-          to: (
-            i: number,
-          ) => { x: number y: number rot: number scale: number alpha: number },
-          reverseStagger = false
+        let p: number;
+        let from: (i: number) => LetterPose;
+        let to: (i: number) => LetterPose;
+        let reverseStagger = false;
         if (flipP > 0) {
           p = flipP
           reverseStagger = true
