@@ -1,30 +1,41 @@
-import type { Metadata, Viewport } from "next";
-import { DM_Serif_Display, Inter } from "next/font/google";
-import "./globals.css";
+import type { Metadata, Viewport } from "next"
+import {
+  Space_Grotesk,
+  JetBrains_Mono,
+  Instrument_Serif,
+} from "next/font/google"
+import "./globals.css"
 
-const dmSerifDisplay = DM_Serif_Display({
+const spaceGrotesk = Space_Grotesk({
+  weight: ["500", "700"],
+  subsets: ["latin"],
+  variable: "--font-disp",
+  display: "swap",
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+})
+
+const instrumentSerif = Instrument_Serif({
   weight: "400",
-  style: ["normal", "italic"],
+  style: "italic",
   subsets: ["latin"],
-  variable: "--font-dm-serif",
+  variable: "--font-serif",
   display: "swap",
-});
+})
 
-const inter = Inter({
-  weight: ["300", "400", "500", "600"],
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const BASE_URL = "https://ziad-sheashaa.me";
+const BASE_URL = "https://ziad-sheashaa.me"
 
 export const viewport: Viewport = {
-  themeColor: "#080808",
+  themeColor: "#09090a",
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
-};
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -100,7 +111,7 @@ export const metadata: Metadata = {
     shortcut: "/images/desktop-profile-with-background.jpg",
     apple: "/images/desktop-profile-with-background.jpg",
   },
-};
+}
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -117,8 +128,8 @@ const jsonLd = {
         "Software & AI Engineer specializing in Machine Learning, Computer Vision, Autonomous Systems, and Full-Stack Engineering.",
       sameAs: [
         "https://github.com/ZiadMD",
-        "https://www.linkedin.com/in/ziadmsheashaa",
-        "mailto:ziadmsheashaa@gmail.com",
+        "https://www.linkedin.com/in/ziad-sheashaa/",
+        "mailto:ziadmohamedgamal25@gmail.com",
       ],
       knowsAbout: [
         "Artificial Intelligence",
@@ -152,16 +163,26 @@ const jsonLd = {
       },
     },
   ],
-};
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${dmSerifDisplay.variable} ${inter.variable}`}>
+    <html
+      lang="en"
+      className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${instrumentSerif.variable}`}
+      data-theme="dark"
+      suppressHydrationWarning
+    >
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('zs-theme')||'dark';document.documentElement.dataset.theme=t;}catch(e){}})();`,
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -169,5 +190,5 @@ export default function RootLayout({
       </head>
       <body>{children}</body>
     </html>
-  );
+  )
 }

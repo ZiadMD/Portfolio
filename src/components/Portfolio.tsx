@@ -1,52 +1,70 @@
-"use client";
+"use client"
+// Initialize Lenis smooth scrolling if not reduced motion
 
-import { useState, useEffect } from "react";
-import Cursor from "./ui/Cursor";
-import Navbar from "./layout/Navbar";
-import Hero from "./sections/Hero";
-import About from "./sections/About";
-import Work from "./sections/Work";
-import Contact from "./sections/Contact";
-
-const SECTIONS = ["hero", "about", "work", "contact"] as const;
+import { useEffect, useRef, useState } from "react"
+import Lenis from "lenis"
+import Navbar from "./layout/Navbar"
+import ScrollRuler from "./layout/ScrollRuler"
+import Hero from "./sections/Hero"
+import About from "./sections/About"
+import Experience from "./sections/Experience"
+import Work from "./sections/Work"
+import Contact from "./sections/Contact"
 
 export default function Portfolio() {
-  const [activeSection, setActiveSection] = useState<string>("hero");
+  const [activeSection, setActiveSection] = useState<string>("hero")
+  const lenisRef = useRef<Lenis | null>(null)
 
   useEffect(() => {
-    const root = document.getElementById("scroll-root");
-    if (!root) return;
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches
 
-    const handleScroll = () => {
-      const scrollY = root.scrollTop;
-      for (const id of [...SECTIONS].reverse()) {
-        const el = document.getElementById(id);
-        if (el && el.offsetTop - 140 <= scrollY) {
-          setActiveSection(id);
-          return;
-        }
+    if (!prefersReducedMotion) {
+      const lenis = new Lenis({
+        lerp: 0.09,
+      })
+      lenisRef.current = lenis
+
+      let animId = 0
+      function raf(time: number) {
+        lenis.raf(time)
+        animId = requestAnimationFrame(raf)
       }
-      setActiveSection("hero");
-    };
+      animId = requestAnimationFrame(raf)
 
-    root.addEventListener("scroll", handleScroll, { passive: true });
-    return () => root.removeEventListener("scroll", handleScroll);
-  }, []);
+      return () => {
+        cancelAnimationFrame(animId)
+        lenis.destroy()
+        lenisRef.current = null
+      }
+    }
+  }, [])
+
+  const handleNavigate = (id: string) => {
+    const el = document.getElementById(id)
+    const target = id === "hero" ? 0 : el ? Math.max(0, el.offsetTop - 52) : 0
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(target, { duration: 1.3 })
+    } else {
+      window.scrollTo({ top: target, behavior: "smooth" })
+    }
+  }
 
   return (
-    <div
-      id="scroll-root"
-      className="size-full overflow-y-auto bg-[#080808]"
-      style={{ cursor: "none" }}
-    >
-      <Cursor />
-      <Navbar activeSection={activeSection} />
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)]">
+      <Navbar activeSection={activeSection} onNavigate={handleNavigate} />
+      <ScrollRuler
+        lenisRef={lenisRef}
+        onActiveSectionChange={setActiveSection}
+      />
       <main>
         <Hero />
         <About />
-        <Work />
+        <Experience />
+        <Work lenisRef={lenisRef} />
       </main>
       <Contact />
     </div>
-  );
+  )
 }

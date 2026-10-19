@@ -1,40 +1,84 @@
-import { CONTACT_LINKS } from "../../data/portfolioData";
+"use client"
+
+import { useEffect, useRef } from "react"
+import { CONTACT_LINKS } from "../../data/portfolioData"
 
 export default function Contact() {
+  const sectionRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const section = sectionRef.current
+    if (!section) return
+
+    const headings = section.querySelectorAll<HTMLElement>("h2, .big")
+    headings.forEach((h) => {
+      if (h.dataset.wrapped) return
+      h.dataset.wrapped = "true"
+      let i = 0
+      h.innerHTML = h.innerHTML.replace(
+        /(<[^>]+>)|([^\s<]+)/g,
+        (match, g, w) =>
+          g ? g : `<span class="w"><i style="--i:${i++}">${w}</i></span>`,
+      )
+    })
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          e.target.classList.toggle("in", e.isIntersecting)
+        })
+      },
+      { threshold: 0.15 },
+    )
+
+    const revealEls = section.querySelectorAll<HTMLElement>(".rv, h2, .big")
+    revealEls.forEach((el) => io.observe(el))
+
+    return () => io.disconnect()
+  }, [])
+
   return (
-    <footer id="contact" aria-label="Contact and Socials" className="min-h-screen py-24 px-6 md:px-16 flex items-center">
-      <div className="max-w-4xl mx-auto w-full">
-        <p className="text-[#c9191e] text-xs uppercase tracking-[0.3em] mb-10 md:mb-16">
-          Contact
+    <>
+      <section className="s" id="contact" data-l="~/contact" ref={sectionRef}>
+        <p className="lab rv">Contact</p>
+        <p className="big">
+          Let’s build <em>something</em> together.
         </p>
-        <h2 className="font-display text-[clamp(2.2rem,6vw,5.5rem)] leading-tight text-[#f0ede8] mb-6">
-          {"Let's build"}
-          <br />
-          <span className="italic text-[#888888]">something together.</span>
-        </h2>
-        <p className="text-[#666666] text-sm leading-relaxed mb-10 md:mb-16 max-w-sm">
-          Open to internships, collaborations, and interesting problems. If you have
-          something worth building, I want to hear about it.
+        <p className="lead rv">
+          Open to collaborations, freelance work, and interesting problems. If
+          you have something worth building, I want to hear about it.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 md:gap-12 border-t border-[#222222] pt-10 md:pt-16">
-          {CONTACT_LINKS.map(({ label, value, href }) => (
-            <div key={label}>
-              <p className="text-[#c9191e] text-xs uppercase tracking-[0.25em] mb-3">
-                {label}
-              </p>
+        <div className="cgrid rv">
+          {CONTACT_LINKS.map((link, idx) => {
+            if (link.href === "#") {
+              return (
+                <div key={idx}>
+                  <small>{link.label}</small>
+                  {link.value}
+                </div>
+              )
+            }
+            const isExternal = link.href.startsWith("http")
+            return (
               <a
-                href={href}
-                target={href.startsWith("http") ? "_blank" : undefined}
-                rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
-                className="text-[#f0ede8] text-sm hover:text-[#c9191e] transition-colors duration-300"
+                key={idx}
+                href={link.href}
+                target={isExternal ? "_blank" : undefined}
+                rel={isExternal ? "noopener noreferrer" : undefined}
               >
-                {value}
+                <small>{link.label}</small>
+                {link.value}
               </a>
-            </div>
-          ))}
+            )
+          })}
         </div>
-      </div>
-    </footer>
-  );
+      </section>
+
+      <footer>
+        <span>© 2026 Ziad M. Sheashaa</span>
+        <span>Built with canvas and a lot of particles.</span>
+      </footer>
+    </>
+  )
 }

@@ -1,7 +1,7 @@
-import type { MetadataRoute } from "next";
+import type { MetadataRoute } from "next"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://ziad-sheashaa.me";
+  const baseUrl = "https://ziad-sheashaa.me"
 
   return [
     {
@@ -10,5 +10,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 1.0,
     },
-  ];
+  ]
 }
