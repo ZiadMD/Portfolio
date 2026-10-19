@@ -47,6 +47,16 @@ html::-webkit-scrollbar {
   display: none;
 }
 
+html.lenis, html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -399,7 +409,7 @@ html[data-theme="light"] .ib .moon {
   touch-action: none;
 }
 
-@media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+@media (min-width: 900px) {
   #ruler { display: block; }
   #bar { display: none; }
   .nav { padding-right: 68px; }

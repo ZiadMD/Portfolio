@@ -1,7 +1,6 @@
 "use client"
 // ignore
 // ignore
-
 import { useEffect, useState } from "react"
 import { NAV_LINKS } from "../../data/portfolioData"
 
@@ -20,20 +19,14 @@ export default function Navbar({ activeSection, onNavigate }: NavbarProps) {
         setTheme(saved)
         document.documentElement.dataset.theme = saved
       } else {
-        const isDark =
-          document.documentElement.dataset.theme !==
-          "light"
+        const isDark = document.documentElement.dataset.theme !== "light"
         setTheme(isDark ? "dark" : "light")
       }
     } catch {}
   }, [])
 
   const toggleTheme = () => {
-    const next =
-      theme ===
-      "light"
-        ? "dark"
-        : "light"
+    const next = theme === "light" ? "dark" : "light"
     setTheme(next)
     document.documentElement.dataset.theme = next
     try {

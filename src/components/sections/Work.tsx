@@ -19,11 +19,7 @@ import { PROJECTS } from "../../data/portfolioData"
 import { Project } from "../../types/portfolio"
 
 function generateProjectArt(title: string, hue: number): string {
-  if (
-    typeof document ===
-    "undefined"
-  )
-    return ""
+  if (typeof document === "undefined") return ""
   const c = document.createElement("canvas")
   c.width = 640
   c.height = 440
@@ -31,48 +27,15 @@ function generateProjectArt(title: string, hue: number): string {
   if (!g) return ""
   const q = g.createLinearGradient(0, 0, 640, 440)
   q.addColorStop(0, `hsl(${hue} 55% 12%)`)
-  q.addColorStop(
-    1,
-    `hsl(${
-      hue +
-      40
-    } 65% 30%)`,
-  )
+  q.addColorStop(1, `hsl(${hue + 40} 65% 30%)`)
   g.fillStyle = q
   g.fillRect(0, 0, 640, 440)
-  g.fillStyle = `hsla(${
-    hue +
-    20
-  }, 90%, 80%, 0.4)`
-  for (
-    let y = 14;
-    y <
-    440;
-    y += 14
-  ) {
-    for (
-      let x = 10;
-      x <
-      640;
-      x += 14
-    ) {
-      const v =
-        (Math.sin(x * 0.02 + hue) +
-          Math.cos(
-            y *
-              0.03,
-          ) +
-          2) /
-        4
+  g.fillStyle = `hsla(${hue + 20}, 90%, 80%, 0.4)`
+  for (let y = 14; y < 440; y += 14) {
+    for (let x = 10; x < 640; x += 14) {
+      const v = (Math.sin(x * 0.02 + hue) + Math.cos(y * 0.03) + 2) / 4
       g.beginPath()
-      g.arc(
-        x,
-        y,
-        v *
-          4.5,
-        0,
-        6.283,
-      )
+      g.arc(x, y, v * 4.5, 0, 6.283)
       g.fill()
     }
   }
@@ -102,9 +65,7 @@ export default function Work({ lenisRef }: WorkProps) {
   const extraProjects = useMemo(() => PROJECTS.slice(SEL), [])
   useEffect(() => {
     const images = PROJECTS.map(
-      (p) =>
-        p.img ||
-        generateProjectArt(p.title, p.hue),
+      (p) => p.img || generateProjectArt(p.title, p.hue),
     )
     setProjectImages(images)
   }, [])
@@ -156,39 +117,15 @@ export default function Work({ lenisRef }: WorkProps) {
     let animId = 0
 
     function loop(now: number) {
-      const dt =
-        Math.min(0.05, (now - lt) / 1000) ||
-        0.016
+      const dt = Math.min(0.05, (now - lt) / 1000) || 0.016
       lt = now
-      qx +=
-        (tx - qx) *
-        (1 -
-          Math.exp(
-            -dt *
-              9,
-          ))
-      qy +=
-        (ty - qy) *
-        (1 -
-          Math.exp(
-            -dt *
-              9,
-          ))
-      ss +=
-        (st - ss) *
-        (1 -
-          Math.exp(
-            -dt *
-              11,
-          ))
+      qx += (tx - qx) * (1 - Math.exp(-dt * 9))
+      qy += (ty - qy) * (1 - Math.exp(-dt * 9))
+      ss += (st - ss) * (1 - Math.exp(-dt * 11))
 
       pk!.style.transform = `translate3d(${qx}px, ${qy}px, 0) translate(-50%, -50%) scale(${ss})`
 
-      if (
-        st ||
-        ss >
-          0.004
-      ) {
+      if (st || ss > 0.004) {
         animId = requestAnimationFrame(loop)
       } else {
         run = 0
@@ -197,28 +134,13 @@ export default function Work({ lenisRef }: WorkProps) {
     }
 
     function pick(i: number) {
-      if (
-        i ===
-        act
-      )
-        return
+      if (i === act) return
       const was = act
       act = i
-      st =
-        i >=
-        0
-          ? 1
-          : 0
-      if (
-        i <
-        0
-      )
-        return
+      st = i >= 0 ? 1 : 0
+      if (i < 0) return
 
-      if (
-        was <
-        0
-      ) {
+      if (was < 0) {
         qx = tx
         qy = ty
         ss = 0
@@ -241,11 +163,7 @@ export default function Work({ lenisRef }: WorkProps) {
     const rowAt = (x: number, y: number) => {
       const e = document.elementFromPoint(x, y)
       const r = e?.closest<HTMLElement>(".row")
-      return r &&
-        r.dataset.i !==
-          undefined
-        ? Number(r.dataset.i)
-        : -1
+      return r && r.dataset.i !== undefined ? Number(r.dataset.i) : -1
     }
 
     const onPointerMove = (e: PointerEvent) => {
@@ -256,11 +174,7 @@ export default function Work({ lenisRef }: WorkProps) {
 
     const onPointerLeave = () => pick(-1)
     const onScroll = () => {
-      if (
-        act >=
-        0
-      )
-        pick(rowAt(tx, ty))
+      if (act >= 0) pick(rowAt(tx, ty))
     }
 
     list.addEventListener("pointermove", onPointerMove)
@@ -293,11 +207,7 @@ export default function Work({ lenisRef }: WorkProps) {
   }
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.key ===
-          "Escape" &&
-        selectedProject
-      ) {
+      if (e.key === "Escape" && selectedProject) {
         closeModal()
       }
     }

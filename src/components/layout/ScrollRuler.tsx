@@ -1,8 +1,6 @@
 "use client"
 
-// Measure labels
-
-// --- HeadingFlow ---
+// HeadingFlow physics
 
 import { useEffect, useRef } from "react"
 import Lenis from "lenis"
@@ -14,6 +12,7 @@ const TUNABLES = {
   railW: 60,
   minorPct: 1,
   labelPct: 5,
+  thresholdPct: 12,
   headingPx: 32,
   ridingPx: 20,
   queuePx: 16,
@@ -100,29 +99,29 @@ function frostMask(solid: number, gamma: number) {
 }
 
 interface LabelMetric {
-  adv: number[];
-  cum: number[];
-  total: number;
+  adv: number[]
+  cum: number[]
+  total: number
 }
 
 interface LetterPose {
-  x: number;
-  y: number;
-  rot: number;
-  scale: number;
-  alpha: number;
+  x: number
+  y: number
+  rot: number
+  scale: number
+  alpha: number
 }
 
 interface TickItem {
-  pct: number;
-  major: boolean;
-  docY: number;
+  pct: number
+  major: boolean
+  docY: number
 }
 
 interface OccupancySpan {
-  top: number;
-  bottom: number;
-  k: number;
+  top: number
+  bottom: number
+  k: number
 }
 
 const RULER_SECTIONS = [
@@ -135,13 +134,9 @@ const RULER_SECTIONS = [
 
 interface ScrollRulerProps {
   lenisRef: React.MutableRefObject<Lenis | null>
-  onActiveSectionChange?: (sectionId: string) => void
 }
 
-export default function ScrollRuler({
-  lenisRef,
-  onActiveSectionChange,
-}: ScrollRulerProps) {
+export default function ScrollRuler({ lenisRef }: ScrollRulerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -184,6 +179,7 @@ export default function ScrollRuler({
       frostEl.style.maskImage = mask
       frostEl.style.webkitMaskImage = mask
     }
+
     function measureLabels(labels: string[]) {
       const probe = document.createElement("div")
       probe.style.cssText =
@@ -302,6 +298,7 @@ export default function ScrollRuler({
         "Jump to " +
           s.label,
       )
+      hit.style.pointerEvents = "none"
       hit.addEventListener("click", (e) => {
         e.preventDefault()
         e.stopPropagation()
@@ -321,7 +318,7 @@ export default function ScrollRuler({
       wordHits.push(hit)
     })
 
-    const tickRoster: TickItem[] = [];
+    const tickRoster: TickItem[] = []
     for (
       let p = 0;
       p <=
@@ -498,6 +495,7 @@ export default function ScrollRuler({
     let dragMoved = 0
     let ghostActive = false
     let ghostY = 0
+    let zoomWrote = false
 
     function scheduleZoom(on: boolean) {
       clearTimeout(zoomTimer)
@@ -594,7 +592,7 @@ export default function ScrollRuler({
     let lastY = window.scrollY
     let vel = 0
     let lastTime = performance.now()
-    const railOccupancySpans: OccupancySpan[] = [];
+    const railOccupancySpans: OccupancySpan[] = []
     let isRunning = true
 
     function step(now: number) {
@@ -720,7 +718,8 @@ export default function ScrollRuler({
       )
       const writeZoom =
         z >
-        0
+          0 ||
+        zoomWrote
       for (
         let i = 0;
         i <
@@ -804,48 +803,58 @@ export default function ScrollRuler({
               ),
             )
           } else {
-            lineEl.style.transform = ""
+            lineEl.style.transform = "scaleX(1)"
             lineEl.style.opacity = String(
               tickRoster[i].major ? TUNABLES.majorAlpha : TUNABLES.minorAlpha,
             )
           }
         }
       }
+      zoomWrote =
+        z >
+        0
+      const T = (TUNABLES.thresholdPct / 100) * vh
+      const yTopLine = NAV_H + TUNABLES.topPad
+      const yQueueLine = vh - TUNABLES.queuePad
       const hp = TUNABLES.headingPx
       const rs = TUNABLES.ridingPx / hp
       const qs = TUNABLES.queuePx / hp
       const railCenterX = vw - TUNABLES.railW / 2
-      const yTopLine = NAV_H + TUNABLES.topPad
-      const yQueueLine = vh - TUNABLES.queuePad
       const zoomE = easeInOutCubic(z)
 
-      const measured = RULER_SECTIONS.map((s) => {
+      const measured = RULER_SECTIONS.map((s, index) => {
         const el = document.getElementById(s.id)
-        const top = s.isHero
-          ? 0
-          : el
-            ? el.getBoundingClientRect().top + scrollY - NAV_H
-            : 0
-        return { ...s, anchor: top }
+        const rect = el ? el.getBoundingClientRect() : null
+        return {
+          ...s,
+          index,
+          anchor: rect ? rect.top + scrollY : 0,
+          bottom: rect ? rect.bottom + scrollY : 0,
+        }
       })
 
-      const phases = measured.map((s) => {
+      const phases = measured.map((s, wi) => {
         const m = metrics[s.label]
-        const rideLen = m ? m.total * hp * rs : 100
-        const v = map.base + (s.anchor / docH) * map.span - scrollY + drift
-        return { v, rideLen, flipP: 0, detachP: 1, yq: 0 }
+        const rideLen = (m ? m.total : 0) * hp * rs
+        const v = s.anchor - scrollY + drift
+        let flipP = 0
+        let detachP = 0
+        if (wi === 0) {
+          flipP = 1
+          detachP = 1
+        } else {
+          flipP = clamp01((T + TUNABLES.flipZone - v) / TUNABLES.flipZone)
+          if (s.anchor - maxScroll > T) {
+            const endStart = Math.min(s.bottom - vh, maxScroll - 24)
+            const zone = Math.max(24, maxScroll - endStart)
+            flipP = Math.max(flipP, clamp01((scrollY - endStart) / zone))
+          }
+        }
+        return { v, rideLen, flipP, detachP, yq: yQueueLine }
       })
-
-      for (let wi = phases.length - 1; wi >= 0; wi--) {
-        const ph = phases[wi]
-        const yTopTarget = yTopLine + wi * TUNABLES.queueSlot
-        ph.flipP = clamp01(
-          (yTopTarget + TUNABLES.flipZone - ph.v) / TUNABLES.flipZone,
-        )
-      }
 
       let below = 0
-      for (let wi = phases.length - 1; wi >= 0; wi--) {
+      for (let wi = measured.length - 1; wi >= 0; wi--) {
         if (wi === 0) continue
         const ph = phases[wi]
         ph.yq = yQueueLine - TUNABLES.queueSlot * below
@@ -887,11 +896,11 @@ export default function ScrollRuler({
         s: number,
         alpha: number,
       ): LetterPose => {
-        const along = (m.cum[i] + m.adv[i] / 2) * hp * s;
+        const along = (m.cum[i] + m.adv[i] / 2) * hp * s
         const inward =
-          TUNABLES.railW + TUNABLES.textPad + (m.total * hp * s - along);
-        return { x: vw - inward, y: yLine, rot: 0, scale: s, alpha };
-      };
+          TUNABLES.railW + TUNABLES.textPad + (m.total * hp * s - along)
+        return { x: vw - inward, y: yLine, rot: 0, scale: s, alpha }
+      }
 
       const ridePose = (
         m: LabelMetric,
@@ -903,22 +912,23 @@ export default function ScrollRuler({
         rot: -90,
         scale: rs,
         alpha: TUNABLES.queueAlpha,
-      });
+      })
 
       for (let wi = 0; wi < measured.length; wi++) {
-        const s = measured[wi];
-        const m = metrics[s.label];
-        const letters = wordLetters[wi];
-        const hit = wordHits[wi];
-        if (!m || !letters) continue;
+        const s = measured[wi]
+        const m = metrics[s.label]
+        const letters = wordLetters[wi]
+        const hit = wordHits[wi]
+        if (!m || !letters) continue
 
-        const { v, rideLen, flipP, detachP, yq } = phases[wi];
-        const n = m.adv.length;
+        const { v, rideLen, flipP, detachP, yq } = phases[wi]
+        const n = m.adv.length
 
-        let p: number;
-        let from: (i: number) => LetterPose;
-        let to: (i: number) => LetterPose;
-        let reverseStagger = false;
+        let p: number
+        let from: (i: number) => LetterPose
+        let to: (i: number) => LetterPose
+        let reverseStagger = false
+
         if (flipP > 0) {
           p = flipP
           reverseStagger = true
@@ -1039,9 +1049,10 @@ export default function ScrollRuler({
       for (let i = 0; i < phases.length; i++) {
         if (phases[i].flipP >= 0.5) activeSecIdx = i
       }
-      if (onActiveSectionChange && RULER_SECTIONS[activeSecIdx]) {
-        onActiveSectionChange(RULER_SECTIONS[activeSecIdx].id)
-      }
+      const navLinks = document.querySelectorAll<HTMLElement>(".nl a")
+      navLinks.forEach((a, idx) => {
+        a.classList.toggle("on", idx === activeSecIdx - 1)
+      })
     }
 
     const animId = requestAnimationFrame(step)
@@ -1063,7 +1074,7 @@ export default function ScrollRuler({
       hitEl.removeEventListener("pointerup", onPointerEnd)
       hitEl.removeEventListener("pointercancel", onPointerEnd)
     }
-  }, [lenisRef, onActiveSectionChange])
+  }, [lenisRef])
 
   return (
     <div ref={containerRef}>

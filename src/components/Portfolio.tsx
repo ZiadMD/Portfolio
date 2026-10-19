@@ -1,6 +1,5 @@
 "use client"
 // Initialize Lenis smooth scrolling if not reduced motion
-
 import { useEffect, useRef, useState } from "react"
 import Lenis from "lenis"
 import Navbar from "./layout/Navbar"
@@ -54,10 +53,7 @@ export default function Portfolio() {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)]">
       <Navbar activeSection={activeSection} onNavigate={handleNavigate} />
-      <ScrollRuler
-        lenisRef={lenisRef}
-        onActiveSectionChange={setActiveSection}
-      />
+      <ScrollRuler lenisRef={lenisRef} />
       <main>
         <Hero />
         <About />

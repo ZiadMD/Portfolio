@@ -10,40 +10,40 @@ import { PHOTO_SRC } from "../../data/photoSrc"
 import { SKILLS } from "../../data/portfolioData"
 
 interface PhotoCell {
-  tx: number;
-  ty: number;
-  r: number;
-  co: string;
-  dl: number;
+  tx: number
+  ty: number
+  r: number
+  co: string
+  dl: number
 }
 
 interface PhotoData {
-  c: PhotoCell[];
-  bmp: HTMLCanvasElement | null;
+  c: PhotoCell[]
+  bmp: HTMLCanvasElement | null
 }
 
 interface LogoItem {
-  pts: [number, number, number, number, number][];
-  arm: number;
-  u0: number;
-  j: number;
-  dl: number;
-  sz: number;
+  pts: [number, number, number, number, number][]
+  arm: number
+  u0: number
+  j: number
+  dl: number
+  sz: number
 }
 
 interface SpiralItem {
-  arm: number;
-  u: number;
-  j: number;
-  sz: number;
-  br: number;
+  arm: number
+  u: number
+  j: number
+  sz: number
+  br: number
 }
 
 interface OrbitItem {
-  pts: [number, number, number, number, number][];
-  ring: number;
-  th: number;
-  sz: number;
+  pts: [number, number, number, number, number][]
+  ring: number
+  th: number
+  sz: number
 }
 
 export default function Hero() {
@@ -104,10 +104,10 @@ export default function Hero() {
     let cy = 0
     let sc = 0
     let img: HTMLImageElement | HTMLCanvasElement | null = null
-    let ph: PhotoData | null = null;
-    let logos: LogoItem[] = [];
-    let sp: SpiralItem[] = [];
-    let orbits: OrbitItem[] = [];
+    let ph: PhotoData | null = null
+    let logos: LogoItem[] = []
+    let sp: SpiralItem[] = []
+    let orbits: OrbitItem[] = []
 
     let ang = 0
     let oA = 0
