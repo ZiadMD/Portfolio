@@ -170,43 +170,49 @@ export default function Hero() {
 
     function buildSpiral() {
       sp = []
-      const N = W < 768 ? 2200 : 4000
+      const isMobile = W < 768
+      const N = isMobile ? 1800 : 4000
       for (let i = 0; i < N; i++) {
         const u = 0.02 + 0.98 * rnd()
         sp.push({
           arm: i % 4,
           u,
           j: (rnd() - 0.5) * 0.45 * (0.25 + u),
-          sz: rnd() < 0.15 ? 1.6 : rnd() < 0.4 ? 1.1 : 0.75,
+          sz:
+            (rnd() < 0.15 ? 1.6 : rnd() < 0.4 ? 1.1 : 0.75) *
+            (isMobile ? 0.85 : 1),
           br: 0.35 + 0.65 * rnd(),
         })
       }
     }
 
     function buildLogos() {
+      const isMobile = W < 768
       logos = PULL.map((k, i) => ({
         pts: sample(k),
         arm: i % 4,
         u0: 0.78 + (i % 3) * 0.06,
         j: (((i * 1.618) % 1) - 0.5) * 0.25,
         dl: i * 0.21,
-        sz: 1.6,
+        sz: isMobile ? 1.25 : 1.6,
       }))
 
       orbits = ORB.map((k, i) => ({
         pts: sample(k),
         ring: i % 2,
         th: (i >> 1) * (6.2832 / (ORB.length / 2)) + (i % 2) * 0.5,
-        sz: 1.7,
+        sz: isMobile ? 1.3 : 1.7,
       }))
     }
 
     function buildPhoto() {
       if (!img || !img.naturalWidth || !img.naturalHeight) return
       const isMobile = W < 768
-      const rowsN = isMobile ? 72 : 100
+      const rowsN = isMobile ? 68 : 100
       const ia = img.naturalWidth / img.naturalHeight
-      const hh = Math.min(H * 0.86, (W * 0.95) / ia)
+      const maxW = isMobile ? W * 0.72 : W * 0.95
+      const maxH = isMobile ? H * 0.62 : H * 0.86
+      const hh = Math.min(maxH, maxW / ia)
       const cell = hh / rowsN
       const cols = Math.round((hh * ia) / cell)
       const rows = rowsN
@@ -220,7 +226,8 @@ export default function Hero() {
 
       const d = g.getImageData(0, 0, cols, rows).data
       const ox = cx - (cols * cell) / 2
-      const oy = H - rows * cell
+      const bottomOffset = isMobile ? Math.round(H * 0.1) : 0
+      const oy = H - bottomOffset - rows * cell
       const cells: {
         tx: number
         ty: number
@@ -278,9 +285,12 @@ export default function Hero() {
           : isMobile
             ? 0.805
             : 1.79
-      const hh = Math.min(H * 0.86, (W * 0.95) / ia)
-      cy = H - hh * 0.5
-      sc = Math.min(W, H) * 0.58
+      const maxW = isMobile ? W * 0.72 : W * 0.95
+      const maxH = isMobile ? H * 0.62 : H * 0.86
+      const hh = Math.min(maxH, maxW / ia)
+      const bottomOffset = isMobile ? Math.round(H * 0.1) : 0
+      cy = H - bottomOffset - hh * 0.5
+      sc = Math.min(W, H) * (isMobile ? 0.42 : 0.58)
 
       buildSpiral()
       buildLogos()
