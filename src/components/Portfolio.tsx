@@ -1,7 +1,8 @@
 "use client"
-// Initialize Lenis smooth scrolling if not reduced motion
-import { useEffect, useRef, useState } from "react"
+
+import { useEffect, useState } from "react"
 import Lenis from "lenis"
+import { lenisRef } from "../lib/lenis-ref"
 import Navbar from "./layout/Navbar"
 import ScrollRuler from "./layout/ScrollRuler"
 import Hero from "./sections/Hero"
@@ -12,7 +13,6 @@ import Contact from "./sections/Contact"
 
 export default function Portfolio() {
   const [activeSection, setActiveSection] = useState<string>("hero")
-  const lenisRef = useRef<Lenis | null>(null)
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia(
@@ -53,7 +53,7 @@ export default function Portfolio() {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)]">
       <Navbar activeSection={activeSection} onNavigate={handleNavigate} />
-      <ScrollRuler lenisRef={lenisRef} />
+      <ScrollRuler />
       <main>
         <Hero />
         <About />
