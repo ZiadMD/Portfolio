@@ -22,7 +22,7 @@ import {
 export const HERO_SECTION_ID = "hero"
 
 export const RULER_SECTIONS = [
-  { id: HERO_SECTION_ID, label: "ZIAD" },
+  { id: HERO_SECTION_ID, label: " " },
   { id: "about", label: "ABOUT" },
   { id: "experience", label: "EXPERIENCE" },
   { id: "work", label: "WORK" },

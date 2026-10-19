@@ -41,7 +41,7 @@ export const SKILLS: string[] = [
 ]
 
 export const STATS: StatItem[] = [
-  { value: 9, label: "Projects" },
+  { value: 10, label: "Projects" },
   { value: 5, label: "Engineering domains" },
   { value: 13, label: "Core technologies" },
 ]

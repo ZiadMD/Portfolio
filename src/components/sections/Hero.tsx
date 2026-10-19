@@ -3,10 +3,21 @@
 // Live Cairo clock
 
 // Canvas particle simulations
+/* <div className="hud st">
+        <i />
+        Available remote · Ismailia, EG · <span id="clk">{cairoTime}</span>
+      </div>
+
+      <span className="cx" style={{ left: 12, top: 60 }}>
+        +
+      </span>
+      <span className="cx" style={{ right: 12, top: 60 }}>
+        +
+      </span> */
 
 import { useEffect, useRef, useState } from "react"
 import { ICONS, PULL, ORB } from "../../data/heroIcons"
-import { PHOTO_SRC } from "../../data/photoSrc"
+import { DESKTOP_PHOTO_SRC, MOBILE_PHOTO_SRC } from "../../data/photoSrc"
 import { SKILLS } from "../../data/portfolioData"
 
 interface PhotoCell {
@@ -103,7 +114,7 @@ export default function Hero() {
     let cx = 0
     let cy = 0
     let sc = 0
-    let img: HTMLImageElement | HTMLCanvasElement | null = null
+    let img: HTMLImageElement | null = null
     let ph: PhotoData | null = null
     let logos: LogoItem[] = []
     let sp: SpiralItem[] = []
@@ -145,9 +156,21 @@ export default function Hero() {
       return pts
     }
 
+    const desktopImg = new Image()
+    const mobileImg = new Image()
+
+    function getPreferredImg(width: number): HTMLImageElement | null {
+      const isMobile = width < 768
+      const preferred = isMobile ? mobileImg : desktopImg
+      if (preferred.complete && preferred.naturalWidth > 0) return preferred
+      const fallback = isMobile ? desktopImg : mobileImg
+      if (fallback.complete && fallback.naturalWidth > 0) return fallback
+      return null
+    }
+
     function buildSpiral() {
       sp = []
-      const N = W < 700 ? 2200 : 4000
+      const N = W < 768 ? 2200 : 4000
       for (let i = 0; i < N; i++) {
         const u = 0.02 + 0.98 * rnd()
         sp.push({
@@ -179,9 +202,10 @@ export default function Hero() {
     }
 
     function buildPhoto() {
-      if (!img) return
-      const rowsN = W < 700 ? 72 : 100
-      const ia = img.width / img.height
+      if (!img || !img.naturalWidth || !img.naturalHeight) return
+      const isMobile = W < 768
+      const rowsN = isMobile ? 72 : 100
+      const ia = img.naturalWidth / img.naturalHeight
       const hh = Math.min(H * 0.86, (W * 0.95) / ia)
       const cell = hh / rowsN
       const cols = Math.round((hh * ia) / cell)
@@ -241,8 +265,19 @@ export default function Hero() {
       px!.setTransform(D, 0, 0, D, 0, 0)
       sx!.setTransform(D, 0, 0, D, 0, 0)
 
+      const isMobile = W < 768
+      const targetImg = getPreferredImg(W)
+      if (targetImg) {
+        img = targetImg
+      }
+
       cx = W / 2
-      const ia = img && img.width && img.height ? img.width / img.height : 0.8
+      const ia =
+        img && img.naturalWidth && img.naturalHeight
+          ? img.naturalWidth / img.naturalHeight
+          : isMobile
+            ? 0.805
+            : 1.79
       const hh = Math.min(H * 0.86, (W * 0.95) / ia)
       cy = H - hh * 0.5
       sc = Math.min(W, H) * 0.58
@@ -492,20 +527,31 @@ export default function Hero() {
     const onResize = () => {
       clearTimeout(rt)
       rt = setTimeout(() => {
-        if (Math.abs(hero.clientWidth - lw) > 20 || !lw) {
-          lw = hero.clientWidth
+        const cw = hero.clientWidth
+        const crossedBreakpoint = cw < 768 !== lw < 768
+        if (crossedBreakpoint || Math.abs(cw - lw) > 20 || !lw) {
+          lw = cw
           layout()
         }
-      }, 150)
+      }, 100)
     }
     window.addEventListener("resize", onResize)
 
-    const i = new Image()
-    i.onload = () => {
-      img = i
-      if (W) buildPhoto()
+    const onImgLoad = () => {
+      if (!hero) return
+      const preferred = getPreferredImg(W || hero.clientWidth)
+      if (preferred && preferred !== img) {
+        img = preferred
+        layout()
+      } else if (preferred && !ph) {
+        img = preferred
+        buildPhoto()
+      }
     }
-    i.src = PHOTO_SRC
+    desktopImg.onload = onImgLoad
+    mobileImg.onload = onImgLoad
+    desktopImg.src = DESKTOP_PHOTO_SRC
+    mobileImg.src = MOBILE_PHOTO_SRC
 
     const replayBtn = hero.querySelector<HTMLButtonElement>("#replay")
     const onReplay = () => {
@@ -534,6 +580,8 @@ export default function Hero() {
       window.removeEventListener("zs-theme-change", onThemeChange)
       hero.removeEventListener("pointermove", onPointerMove)
       hero.removeEventListener("pointerleave", onPointerLeave)
+      desktopImg.onload = null
+      mobileImg.onload = null
       if (replayBtn) replayBtn.removeEventListener("click", onReplay)
     }
   }, [])
@@ -545,17 +593,7 @@ export default function Hero() {
       <div className="veil" />
       <canvas id="photo" ref={photoCanvasRef} aria-hidden="true" />
 
-      <div className="hud st">
-        <i />
-        Available remote · Ismailia, EG · <span id="clk">{cairoTime}</span>
-      </div>
-
-      <span className="cx" style={{ left: 12, top: 60 }}>
-        +
-      </span>
-      <span className="cx" style={{ right: 12, top: 60 }}>
-        +
-      </span>
+      {}
 
       <div className="cap">
         <div>
