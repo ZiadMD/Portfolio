@@ -1,10 +1,6 @@
 "use client"
 
-// Sync active section to navbar
-
-// Settle snap via Lenis
-
-import { Fragment, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import gsap from "gsap"
 import { lenisRef } from "../../lib/lenis-ref"
 import {
@@ -16,8 +12,6 @@ import {
   rulerMap,
   rulerZoom,
   type MeasuredSection,
-  type RulerMode,
-  type RulerSide,
 } from "./ruler-shared"
 import {
   rulerLayoutTuner,
@@ -56,20 +50,28 @@ export interface ScrollFlipRange {
 }
 
 interface HeadingFlowProps {
-  mode: RulerMode
-  side: RulerSide
   sections: MeasuredSection[]
   geom: RulerGeom
 }
 
-export default function HeadingFlow({
-  mode,
-  side,
-  sections,
-  geom,
-}: HeadingFlowProps) {
-  const [metrics, setMetrics] = useState<Record<string, WordMetrics> | null>(
-    null,
+function fallbackMetrics(labels: string[]): Record<string, WordMetrics> {
+  const out: Record<string, WordMetrics> = {}
+  for (const label of labels) {
+    const adv = label.split("").map(() => 0.6)
+    const cum: number[] = []
+    let total = 0
+    for (const a of adv) {
+      cum.push(total)
+      total += a
+    }
+    out[label] = { adv, cum, total }
+  }
+  return out
+}
+
+export default function HeadingFlow({ sections, geom }: HeadingFlowProps) {
+  const [metrics, setMetrics] = useState<Record<string, WordMetrics>>(() =>
+    fallbackMetrics(sections.map((s) => s.label)),
   )
   const wordRefs = useRef<WordRefs[]>([])
   const topPoolRef = useRef<HTMLDivElement>(null)
@@ -98,7 +100,7 @@ export default function HeadingFlow({
   const labelsKey = sections.map((s) => s.label).join("|")
 
   useEffect(() => {
-    if (mode !== "full" || !sections.length) return
+    if (!sections.length) return
     let cancelled = false
     const run = () => {
       if (cancelled) return
@@ -110,17 +112,19 @@ export default function HeadingFlow({
     return () => {
       cancelled = true
     }
-  }, [mode, labelsKey])
+  }, [labelsKey, sections])
 
   useEffect(() => {
-    if (mode !== "full" || !metrics || !sections.length || !geom.docH) return
+    if (!sections.length) return
 
     const tick = (_time: number, deltaMs: number) => {
       const st = fs.current
       const lay = rulerLayoutTuner.read()
       const mt = rulerMotionTuner.read()
       const lk = rulerLookTuner.read()
-      const { docH, vh, vw } = geom
+      const docH = geom.docH || document.documentElement.scrollHeight || 4000
+      const vh = window.innerHeight || geom.vh || 900
+      const vw = window.innerWidth || geom.vw || 1280
       const dt = Math.min(deltaMs / 1000, 0.1) || 0.016
 
       const scrollY = window.scrollY
@@ -139,8 +143,7 @@ export default function HeadingFlow({
       const hp = lay.headingPx
       const rs = lay.ridingPx / hp
       const qs = lay.queuePx / hp
-      const inwardSign = side === "right" ? -1 : 1
-      const railCenterX = side === "right" ? vw - lay.railW / 2 : lay.railW / 2
+      const railCenterX = vw - lay.railW / 2
       const zoomE = easeInOutCubic(rulerZoom.p)
 
       const phases = sections.map((s, wi) => {
@@ -197,11 +200,36 @@ export default function HeadingFlow({
           if (q > botK) botK = q
         }
       }
+
+      let poolW = 260
+      for (const s of sections) {
+        const m = metrics[s.label]
+        if (m) poolW = Math.max(poolW, m.total * lay.headingPx)
+      }
+      poolW += lay.railW + lay.textPad + pools.poolPad
+      const n = sections.length
+      const topPoolH =
+        NAV_H +
+        lay.topPad +
+        Math.max(0, n - 1) * lay.queueSlot +
+        lay.currentGap +
+        lay.headingPx +
+        pools.poolPad
+      const bottomPoolH = lay.queuePad + n * lay.queueSlot + pools.poolPad
+
       if (topPoolRef.current) {
-        topPoolRef.current.style.opacity = String(lk.poolAlpha * topK)
+        topPoolRef.current.style.width = `${poolW}px`
+        topPoolRef.current.style.height = `${topPoolH}px`
+        topPoolRef.current.style.opacity = String(
+          (pools.poolAlpha * topK).toFixed(3),
+        )
       }
       if (bottomPoolRef.current) {
-        bottomPoolRef.current.style.opacity = String(lk.poolAlpha * botK)
+        bottomPoolRef.current.style.width = `${poolW}px`
+        bottomPoolRef.current.style.height = `${bottomPoolH}px`
+        bottomPoolRef.current.style.opacity = String(
+          (pools.poolAlpha * botK).toFixed(3),
+        )
       }
 
       const horizPose = (
@@ -212,12 +240,9 @@ export default function HeadingFlow({
         alpha: number,
       ): Pose => {
         const along = (m.cum[i] + m.adv[i] / 2) * hp * s
-        const inward =
-          lay.railW +
-          lay.textPad +
-          (side === "right" ? m.total * hp * s - along : along)
+        const inward = lay.railW + lay.textPad + (m.total * hp * s - along)
         return {
-          x: side === "right" ? vw - inward : inward,
+          x: vw - inward,
           y: yLine,
           rot: 0,
           scale: s,
@@ -240,7 +265,7 @@ export default function HeadingFlow({
         if (!m || !refs) continue
 
         const { v, rideLen, flipP, detachP, yq } = phases[wi]
-        const n = m.adv.length
+        const letterCount = m.adv.length
 
         let p: number
         let from: (i: number) => Pose
@@ -280,7 +305,7 @@ export default function HeadingFlow({
         }
 
         const sf = mt.stagger
-        const span = 1 + (n - 1) * sf
+        const span = 1 + (letterCount - 1) * sf
         const mapY = map.base + (s.anchor / docH) * map.span
 
         const hk = (hoverK[wi] +=
@@ -294,15 +319,15 @@ export default function HeadingFlow({
         let maxY = -Infinity
         let maxAlpha = 0
 
-        for (let i = 0; i < n; i++) {
+        for (let i = 0; i < letterCount; i++) {
           const el = refs.letters[i]
           if (!el) continue
-          const si = reverseStagger ? n - 1 - i : i
+          const si = reverseStagger ? letterCount - 1 - i : i
           const pi = clamp01(p * span - si * sf)
           const e = easeInOutCubic(pi)
           const a = from(i)
           const b = to(i)
-          const cx = (a.x + b.x) / 2 + inwardSign * mt.arc
+          const cx = (a.x + b.x) / 2 - mt.arc
           const cy = (a.y + b.y) / 2
           const u = 1 - e
           let x = u * u * a.x + 2 * u * e * cx + e * e * b.x
@@ -322,19 +347,15 @@ export default function HeadingFlow({
 
           el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) translate(-50%, -50%) rotate(${rot.toFixed(2)}deg) scale(${scale.toFixed(3)})`
           const aEff = alpha + (1 - alpha) * hk
-          const baseCol =
-            aEff >= 0.995
-              ? "var(--fg)"
-              : `color-mix(in srgb, var(--fg) ${(clamp01(aEff) * 100).toFixed(
-                  1,
-                )}%, var(--bg))`
           el.style.opacity = aEff < 0.02 ? "0" : "1"
-          el.style.color =
-            pk > 0.01
-              ? `color-mix(in srgb, var(--acc) ${(pk * 70).toFixed(
-                  0,
-                )}%, ${baseCol})`
-              : baseCol
+          if (aEff >= 0.995) {
+            el.style.color = "var(--fg)"
+          } else {
+            el.style.color = `color-mix(in srgb, var(--fg) ${(clamp01(aEff) * 100).toFixed(1)}%, var(--bg))`
+          }
+          if (pk > 0.01) {
+            el.style.color = `color-mix(in srgb, var(--acc) ${(pk * 70).toFixed(0)}%, ${el.style.color})`
+          }
 
           if (alpha > maxAlpha) maxAlpha = alpha
           const wHalf = (m.adv[i] * hp * scale) / 2 + 2
@@ -350,11 +371,7 @@ export default function HeadingFlow({
 
         const onRail = wi === 0 ? 0 : detachP * (1 - flipP)
         if (onRail > 0.02) {
-          railOccupancy.spans.push({
-            top: v,
-            bottom: v + rideLen,
-            k: onRail,
-          })
+          railOccupancy.spans.push({ top: v, bottom: v + rideLen, k: onRail })
         }
 
         if (refs.hit && isFinite(minX)) {
@@ -365,6 +382,7 @@ export default function HeadingFlow({
           refs.hit.style.pointerEvents = maxAlpha > 0.05 ? "auto" : "none"
         }
       }
+
       let activeIdx = 0
       for (let i = 0; i < phases.length; i++) {
         if (phases[i].flipP >= 0.5) activeIdx = i
@@ -377,6 +395,7 @@ export default function HeadingFlow({
           a.classList.toggle("on", href === `#${activeId}`)
         })
       }
+
       const lenis = lenisRef.current
       const now = performance.now()
       const midIdx = phases.findIndex(
@@ -438,53 +457,7 @@ export default function HeadingFlow({
       window.removeEventListener("keydown", rearm)
       gsap.ticker.remove(tick)
     }
-  }, [mode, metrics, sections, geom, side])
-
-  if (!sections.length) return null
-
-  if (mode === "static") {
-    const sideStyle =
-      side === "right"
-        ? { right: layout.railW + layout.textPad, textAlign: "right" as const }
-        : { left: layout.railW + layout.textPad }
-    return (
-      <nav
-        aria-label="Sections"
-        className="fixed z-40"
-        style={{ bottom: layout.queuePad, ...sideStyle }}
-      >
-        <div
-          aria-hidden
-          className="absolute -inset-x-16 -inset-y-10"
-          style={{
-            opacity: pools.poolAlpha,
-            backdropFilter: "blur(9px)",
-            WebkitBackdropFilter: "blur(9px)",
-            backgroundColor: "color-mix(in srgb, var(--bg) 82%, transparent)",
-            maskImage:
-              "radial-gradient(closest-side, black 55%, transparent 100%)",
-            WebkitMaskImage:
-              "radial-gradient(closest-side, black 55%, transparent 100%)",
-          }}
-        />
-        <ul className="relative flex flex-col gap-1.5">
-          {sections.map((s) => (
-            <li key={s.id}>
-              <a
-                href={`#${s.id}`}
-                className="font-display text-ink hover:text-ink-strong active:text-accent-ink"
-                style={{ fontSize: layout.queuePx + 2 }}
-              >
-                {s.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    )
-  }
-
-  if (!metrics) return null
+  }, [metrics, sections, geom])
 
   const jump = (s: MeasuredSection, wi: number) => (e: React.MouseEvent) => {
     e.preventDefault()
@@ -494,11 +467,12 @@ export default function HeadingFlow({
     fs.current.jumping = true
     const lenis = lenisRef.current
     const el = document.getElementById(s.id)
-    const target = s.isHero
-      ? 0
-      : el
-        ? el.getBoundingClientRect().top + window.scrollY - NAV_H
-        : s.anchor - NAV_H
+    const target =
+      s.isHero || wi === 0
+        ? 0
+        : el
+          ? Math.max(0, el.getBoundingClientRect().top + window.scrollY - NAV_H)
+          : s.anchor - NAV_H
     if (lenis) {
       lenis.scrollTo(target, {
         duration: rulerMotionTuner.read().jumpDur,
@@ -513,105 +487,57 @@ export default function HeadingFlow({
     }
   }
 
-  const n = sections.length
-  let poolW = 260
-  for (const s of sections) {
-    const m = metrics[s.label]
-    if (m) poolW = Math.max(poolW, m.total * layout.headingPx)
-  }
-  poolW += layout.railW + layout.textPad + pools.poolPad
-  const topPoolH =
-    NAV_H +
-    layout.topPad +
-    Math.max(0, n - 1) * layout.queueSlot +
-    layout.currentGap +
-    layout.headingPx +
-    pools.poolPad
-  const bottomPoolH = layout.queuePad + n * layout.queueSlot + pools.poolPad
-
-  const poolMask = (cornerY: string) =>
-    `radial-gradient(100% 100% at ${
-      side === "right" ? "100%" : "0%"
-    } ${cornerY}, black 38%, rgba(0,0,0,0.82) 56%, rgba(0,0,0,0.48) 72%, rgba(0,0,0,0.2) 86%, rgba(0,0,0,0.05) 94%, transparent 97%)`
-
   return (
     <>
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-[39]">
-        <div
-          ref={topPoolRef}
-          className="absolute top-0"
-          style={{
-            ...(side === "right" ? { right: 0 } : { left: 0 }),
-            width: poolW,
-            height: topPoolH,
-            opacity: 0,
-            backdropFilter: "blur(9px)",
-            WebkitBackdropFilter: "blur(9px)",
-            backgroundColor: "color-mix(in srgb, var(--bg) 80%, transparent)",
-            maskImage: poolMask("0%"),
-            WebkitMaskImage: poolMask("0%"),
-          }}
-        />
-        <div
-          ref={bottomPoolRef}
-          className="absolute bottom-0"
-          style={{
-            ...(side === "right" ? { right: 0 } : { left: 0 }),
-            width: poolW,
-            height: bottomPoolH,
-            opacity: 0,
-            backdropFilter: "blur(9px)",
-            WebkitBackdropFilter: "blur(9px)",
-            backgroundColor: "color-mix(in srgb, var(--bg) 80%, transparent)",
-            maskImage: poolMask("100%"),
-            WebkitMaskImage: poolMask("100%"),
-          }}
-        />
+      <div id="topPool" ref={topPoolRef} aria-hidden />
+      <div id="bottomPool" ref={bottomPoolRef} aria-hidden />
+
+      <div id="headingFlow" aria-hidden>
+        {sections.map((s, wi) => {
+          const refs = (wordRefs.current[wi] ??= {
+            letters: [],
+            hit: null,
+          })
+          return s.label.split("").map((ch, li) => (
+            <span
+              key={`${s.id}-${li}`}
+              ref={(el) => {
+                refs.letters[li] = el
+              }}
+              className="hf-letter"
+              style={{
+                fontSize: layout.headingPx,
+              }}
+            >
+              {ch}
+            </span>
+          ))
+        })}
       </div>
 
-      <div className="pointer-events-none fixed inset-0 z-40">
+      <div id="headingHits">
         {sections.map((s, wi) => {
           const refs = (wordRefs.current[wi] ??= {
             letters: [],
             hit: null,
           })
           return (
-            <Fragment key={s.id}>
-              <a
-                href={`#${s.id}`}
-                ref={(el) => {
-                  refs.hit = el
-                }}
-                onClick={jump(s, wi)}
-                onPointerEnter={() => {
-                  hoverWi.current = wi
-                }}
-                onPointerLeave={() => {
-                  if (hoverWi.current === wi) hoverWi.current = -1
-                }}
-                aria-label={`Jump to ${s.label}`}
-                className="pointer-events-auto absolute cursor-pointer"
-              />
-              {s.label.split("").map((ch, li) => (
-                <span
-                  key={li}
-                  ref={(el) => {
-                    refs.letters[li] = el
-                  }}
-                  aria-hidden
-                  className="font-display absolute top-0 left-0 whitespace-pre text-[var(--fg)]"
-                  style={{
-                    fontSize: layout.headingPx,
-                    lineHeight: 1,
-                    opacity: 0,
-                    willChange: "transform, opacity",
-                    textShadow: "0 0 4px var(--bg), 0 0 10px var(--bg)",
-                  }}
-                >
-                  {ch}
-                </span>
-              ))}
-            </Fragment>
+            <a
+              key={s.id}
+              href={`#${s.id}`}
+              ref={(el) => {
+                refs.hit = el
+              }}
+              onClick={jump(s, wi)}
+              onPointerEnter={() => {
+                hoverWi.current = wi
+              }}
+              onPointerLeave={() => {
+                if (hoverWi.current === wi) hoverWi.current = -1
+              }}
+              aria-label={`Jump to ${s.label}`}
+              className="hf-hit"
+            />
           )
         })}
       </div>
@@ -621,9 +547,8 @@ export default function HeadingFlow({
 
 function measureLabels(labels: string[]): Record<string, WordMetrics> {
   const probe = document.createElement("div")
-  probe.className = "font-display"
   probe.style.cssText =
-    "position:absolute;left:-9999px;top:0;visibility:hidden;white-space:pre;font-size:100px;line-height:1;"
+    "position:absolute;left:-9999px;top:0;visibility:hidden;white-space:pre;font-family:var(--disp);font-size:100px;font-weight:700;line-height:1;"
   document.body.appendChild(probe)
 
   const out: Record<string, WordMetrics> = {}

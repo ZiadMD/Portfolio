@@ -11,7 +11,6 @@ import {
   rulerMap,
   rulerZoom,
   type MeasuredSection,
-  type RulerMode,
   type RulerSide,
 } from "./ruler-shared"
 import {
@@ -30,7 +29,7 @@ export const RULER_SECTIONS = [
   { id: "contact", label: "CONTACT" },
 ]
 
-interface TickItem {
+export interface TickItem {
   pct: number
   docY: number
   major: boolean
@@ -38,19 +37,13 @@ interface TickItem {
 }
 
 export default function ScrollRuler() {
-  return <ScrollRulerInstrument />
-}
-
-function ScrollRulerInstrument() {
-  const [mode, setMode] = useState<RulerMode | null>(null)
   const [geom, setGeom] = useState({ docH: 0, vh: 0, vw: 0 })
   const [sections, setSections] = useState<MeasuredSection[]>([])
 
-  const railRef = useRef<HTMLDivElement>(null)
+  const railRef = useRef<HTMLElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const needleRef = useRef<HTMLDivElement>(null)
   const readoutRef = useRef<HTMLSpanElement>(null)
-  const ghostRef = useRef<HTMLDivElement>(null)
   const ghostLineRef = useRef<HTMLDivElement>(null)
   const bracketRef = useRef<HTMLDivElement>(null)
   const lineRefs = useRef<(HTMLSpanElement | null)[]>([])
@@ -76,32 +69,9 @@ function ScrollRulerInstrument() {
   })
   fs.current.geom = geom
 
-  useEffect(() => {
-    const mobileUa = /Android|iPhone|iPad|iPod|Mobile/i.test(
-      navigator.userAgent,
-    )
-    const fineMq = window.matchMedia(
-      "(pointer: fine) and (hover: hover) and (min-width: 900px)",
-    )
-    const motionMq = window.matchMedia(
-      "(prefers-reduced-motion: no-preference)",
-    )
-    const apply = () =>
-      setMode(
-        !mobileUa && fineMq.matches
-          ? motionMq.matches
-            ? "full"
-            : "static"
-          : null,
-      )
-    apply()
-    fineMq.addEventListener("change", apply)
-    motionMq.addEventListener("change", apply)
-    return () => {
-      fineMq.removeEventListener("change", apply)
-      motionMq.removeEventListener("change", apply)
-    }
-  }, [])
+  const layout = rulerLayoutTuner.read()
+  const look = rulerLookTuner.read()
+  const side: RulerSide = layout.side >= 0.5 ? "right" : "left"
 
   useEffect(() => {
     const st = fs.current
@@ -113,29 +83,13 @@ function ScrollRulerInstrument() {
     }
   }, [])
 
-  const layout = rulerLayoutTuner.read()
-  const look = rulerLookTuner.read()
-  const side: RulerSide = layout.side >= 0.5 ? "right" : "left"
-  const railW = layout.railW
-
   useEffect(() => {
-    if (!mode) return
-    const root = document.documentElement
-    root.dataset.ruler = mode === "full" ? "on" : "static"
-    root.dataset.rulerSide = side
-    root.style.setProperty("--ruler-rail", `${railW}px`)
-    return () => {
-      delete root.dataset.ruler
-      delete root.dataset.rulerSide
-      root.style.removeProperty("--ruler-rail")
-    }
-  }, [mode, side, railW])
-
-  useEffect(() => {
-    if (!mode) return
     const measure = () => {
       const next = {
-        docH: document.documentElement.scrollHeight,
+        docH: Math.max(
+          document.documentElement.scrollHeight,
+          document.body.scrollHeight,
+        ),
         vh: window.innerHeight,
         vw: window.innerWidth,
       }
@@ -154,10 +108,10 @@ function ScrollRulerInstrument() {
       ro.disconnect()
       window.removeEventListener("resize", measure)
     }
-  }, [mode])
+  }, [])
 
   useEffect(() => {
-    if (!mode || !geom.docH) return
+    if (!geom.docH) return
     const out: MeasuredSection[] = []
     for (const s of RULER_SECTIONS) {
       const el = document.getElementById(s.id)
@@ -175,17 +129,17 @@ function ScrollRulerInstrument() {
       })
     }
     setSections(out)
-  }, [mode, geom])
+  }, [geom])
 
   const ticks = useMemo(() => {
-    if (!mode || !geom.docH) return []
+    const docH = geom.docH || 4000
     const out: TickItem[] = []
     for (let p = 0; p <= 100 + 1e-6; p += layout.minorPct) {
       const pct = Math.round(p * 100) / 100
       const major = Math.abs(pct % layout.labelPct) < 1e-6
       out.push({
         pct,
-        docY: (pct / 100) * geom.docH,
+        docY: (pct / 100) * docH,
         major,
         alpha: major ? look.majorAlpha : look.minorAlpha,
       })
@@ -194,10 +148,9 @@ function ScrollRulerInstrument() {
     tickRowRefs.current.length = out.length
     labelRefs.current.length = out.length
     return out
-  }, [mode, geom.docH, layout, look])
+  }, [geom.docH, layout, look])
 
   useEffect(() => {
-    if (mode !== "full" || !ticks.length) return
     const els = lineRefs.current.filter((el): el is HTMLSpanElement => !!el)
     if (!els.length) return
 
@@ -220,15 +173,13 @@ function ScrollRulerInstrument() {
       tl.kill()
       fs.current.introDone = true
     }
-  }, [mode, ticks])
+  }, [ticks])
 
   useEffect(() => {
-    if (!mode || !geom.docH) return
-    const full = mode === "full"
     const tick = (_time: number, deltaMs: number) => {
       const st = fs.current
-      const { docH, vh } = st.geom
-      if (!vh) return
+      const docH = st.geom.docH || document.documentElement.scrollHeight || 4000
+      const vh = window.innerHeight || st.geom.vh || 900
       const dt = Math.min(deltaMs / 1000, 0.1) || 0.016
       const scrollY = window.scrollY
       const maxScroll = Math.max(1, docH - vh)
@@ -274,14 +225,12 @@ function ScrollRulerInstrument() {
       }
 
       const mt = rulerMotionTuner.read()
-      if (full) {
-        rulerZoom.target = st.zoomIntent || rulerZoom.dragging ? 1 : 0
-        rulerZoom.p +=
-          (rulerZoom.target - rulerZoom.p) * (1 - Math.exp(-mt.zoomLerp * dt))
-        if (rulerZoom.target === 0 && rulerZoom.p < 0.0005) rulerZoom.p = 0
-        if (rulerZoom.target === 1 && rulerZoom.p > 0.9995) rulerZoom.p = 1
-      }
-      const z = full ? rulerZoom.p : 0
+      rulerZoom.target = st.zoomIntent || rulerZoom.dragging ? 1 : 0
+      rulerZoom.p +=
+        (rulerZoom.target - rulerZoom.p) * (1 - Math.exp(-mt.zoomLerp * dt))
+      if (rulerZoom.target === 0 && rulerZoom.p < 0.0005) rulerZoom.p = 0
+      if (rulerZoom.target === 1 && rulerZoom.p > 0.9995) rulerZoom.p = 1
+      const z = rulerZoom.p
 
       if (bracketRef.current) {
         const b = bracketRef.current
@@ -292,8 +241,8 @@ function ScrollRulerInstrument() {
         b.style.opacity = String(z)
       }
 
-      if (ghostRef.current) {
-        const g = ghostRef.current
+      if (ghostLineRef.current) {
+        const g = ghostLineRef.current
         if (st.ghostActive) {
           g.style.transform = `translate3d(0, ${st.ghostY}px, 0)`
           g.style.opacity = String(lk.ghostAlpha * (0.2 + 0.8 * z))
@@ -302,7 +251,7 @@ function ScrollRulerInstrument() {
         }
       }
 
-      if (full && st.introDone && ticks.length) {
+      if (st.introDone && ticks.length) {
         const needleDocY = progress * docH
         const velNorm = clamp01(Math.abs(st.vel) / 3000)
         const writeZoom = z > 0 || st.zoomWrote
@@ -361,13 +310,7 @@ function ScrollRulerInstrument() {
     return () => {
       gsap.ticker.remove(tick)
     }
-  }, [mode, geom, ticks])
-
-  if (!mode || !geom.docH) return null
-
-  const sideStyle =
-    side === "right" ? { right: 0 as const } : { left: 0 as const }
-  const outerProp = side === "right" ? "right" : "left"
+  }, [ticks])
 
   const scheduleZoom = (on: boolean) => {
     const st = fs.current
@@ -398,7 +341,7 @@ function ScrollRulerInstrument() {
 
     if (rulerZoom.dragging) {
       st.dragMoved = Math.max(st.dragMoved, Math.abs(e.clientY - st.dragStartY))
-      const docH = geom.docH
+      const docH = geom.docH || document.documentElement.scrollHeight
       const targetY = p * Math.max(1, docH - vh)
       const lenis = lenisRef.current
       if (lenis) {
@@ -412,7 +355,7 @@ function ScrollRulerInstrument() {
   const railClick = (e: React.MouseEvent) => {
     if (fs.current.dragMoved > 4) return
     const vh = window.innerHeight
-    const docH = geom.docH
+    const docH = geom.docH || document.documentElement.scrollHeight
     const map = rulerMap(vh, layout.edgePad)
     const p = clamp01((e.clientY - map.base) / map.span)
     const target = p * Math.max(1, docH - vh)
@@ -456,7 +399,8 @@ function ScrollRulerInstrument() {
 
   return (
     <>
-      <div
+      <aside
+        id="ruler"
         ref={railRef}
         role="scrollbar"
         aria-controls="main"
@@ -465,33 +409,21 @@ function ScrollRulerInstrument() {
         aria-valuemax={100}
         aria-valuenow={0}
         aria-label="Page position"
-        className="fixed inset-y-0 z-42 cursor-crosshair overflow-hidden select-none"
-        style={{ ...sideStyle, width: railW }}
         onClick={railClick}
-        onPointerEnter={mode === "full" ? railPointerEnter : undefined}
-        onPointerLeave={mode === "full" ? railPointerLeave : undefined}
-        onPointerMove={mode === "full" ? railPointerMove : undefined}
-        onPointerDown={mode === "full" ? railPointerDown : undefined}
-        onPointerUp={mode === "full" ? railPointerUp : undefined}
-        onPointerCancel={mode === "full" ? railPointerUp : undefined}
       >
         <div
-          aria-hidden
-          className="absolute inset-0"
+          id="frost"
           style={{
-            backdropFilter: "blur(9px)",
-            WebkitBackdropFilter: "blur(9px)",
-            backgroundColor: "color-mix(in srgb, var(--bg) 55%, transparent)",
-            maskImage: frostMask(side, look.frostSolid, look.frostGamma),
-            WebkitMaskImage: frostMask(side, look.frostSolid, look.frostGamma),
+            maskImage: frostMask(look.frostSolid, look.frostGamma),
+            WebkitMaskImage: frostMask(look.frostSolid, look.frostGamma),
           }}
         />
 
         <div
+          id="rulerTrack"
           ref={trackRef}
           aria-hidden
-          className="absolute inset-x-0 top-0 pointer-events-none will-change-transform"
-          style={{ height: geom.docH }}
+          style={{ height: geom.docH || "100%" }}
         >
           {ticks.map((t, i) => (
             <div
@@ -499,21 +431,17 @@ function ScrollRulerInstrument() {
               ref={(el) => {
                 tickRowRefs.current[i] = el
               }}
-              className="absolute inset-x-0"
-              style={{ top: t.docY, height: 0 }}
+              className="tick-row"
+              style={{ top: t.docY }}
             >
               <span
                 ref={(el) => {
                   lineRefs.current[i] = el
                 }}
-                className="absolute block bg-[var(--fg)]"
+                className="tick-line"
                 style={{
-                  [outerProp]: 0,
-                  top: 0,
                   width: t.major ? look.majorLen : look.minorLen,
-                  height: 1,
-                  opacity: mode === "full" ? 0 : t.alpha,
-                  transformOrigin: `${outerProp} center`,
+                  opacity: t.alpha,
                 }}
               />
               {t.major && (
@@ -521,14 +449,8 @@ function ScrollRulerInstrument() {
                   ref={(el) => {
                     labelRefs.current[i] = el
                   }}
-                  className="absolute -translate-y-1/2 font-mono text-[var(--fg)] select-none"
-                  style={{
-                    [outerProp]: look.majorLen + 4,
-                    top: 0,
-                    fontSize: 9,
-                    letterSpacing: "0.08em",
-                    opacity: look.labelAlpha,
-                  }}
+                  className="tick-label"
+                  style={{ opacity: look.labelAlpha }}
                 >
                   {t.pct}
                 </span>
@@ -537,48 +459,15 @@ function ScrollRulerInstrument() {
           ))}
         </div>
 
-        {mode === "full" && (
-          <div
-            ref={bracketRef}
-            aria-hidden
-            className="absolute inset-x-0 top-0 pointer-events-none"
-            style={{ height: 0, opacity: 0 }}
-          >
-            <div
-              className="absolute inset-0 bg-[var(--fg)]"
-              style={{ opacity: look.bracketAlpha }}
-            />
-            <span
-              className="absolute inset-x-0 top-0 block bg-[var(--fg)]"
-              style={{ height: 1, opacity: 0.5 }}
-            />
-            <span
-              className="absolute inset-x-0 bottom-0 block bg-[var(--fg)]"
-              style={{ height: 1, opacity: 0.5 }}
-            />
-          </div>
-        )}
+        <div id="bracket" ref={bracketRef} aria-hidden>
+          <div className="bracket-fill" />
+          <span className="bracket-edge top" />
+          <span className="bracket-edge bottom" />
+        </div>
 
-        <div
-          ref={needleRef}
-          aria-hidden
-          className="absolute inset-x-0 top-0 pointer-events-none"
-          style={{ height: 0 }}
-        >
-          <span
-            className="absolute inset-x-0 block bg-[var(--acc)]"
-            style={{ top: 0, height: 1, boxShadow: "0 0 6px var(--acc)" }}
-          />
-          <span
-            ref={readoutRef}
-            className="absolute whitespace-nowrap font-mono text-[var(--acc)] select-none"
-            style={{
-              [outerProp]: 2,
-              top: 4,
-              fontSize: 9,
-              letterSpacing: "0.08em",
-            }}
-          >
+        <div id="needle" ref={needleRef} aria-hidden>
+          <span className="needle-line" />
+          <span id="readout" ref={readoutRef}>
             <span className="ruler-digits">
               {[0, 1, 2].map((c) => (
                 <span
@@ -594,45 +483,29 @@ function ScrollRulerInstrument() {
                 </span>
               ))}
             </span>
-            <span style={{ marginLeft: 2 }}>%</span>
+            <span className="pct-sign">%</span>
           </span>
         </div>
-      </div>
 
-      {mode === "full" && (
+        <div id="ghostLine" ref={ghostLineRef} aria-hidden />
+
         <div
-          ref={ghostRef}
-          aria-hidden
-          className="pointer-events-none fixed inset-y-0 z-42"
-          style={{
-            ...sideStyle,
-            width: railW,
-            height: 0,
-            opacity: 0,
-            top: 0,
-          }}
-        >
-          <div
-            ref={ghostLineRef}
-            className="absolute block bg-[var(--fg)]"
-            style={{
-              [outerProp]: 0,
-              top: -look.ghostThick / 2,
-              width: railW,
-              height: look.ghostThick,
-              opacity: look.ghostAlpha,
-            }}
-          />
-        </div>
-      )}
+          id="hit"
+          onPointerEnter={railPointerEnter}
+          onPointerLeave={railPointerLeave}
+          onPointerMove={railPointerMove}
+          onPointerDown={railPointerDown}
+          onPointerUp={railPointerUp}
+          onPointerCancel={railPointerUp}
+        />
+      </aside>
 
-      <HeadingFlow mode={mode} side={side} sections={sections} geom={geom} />
+      <HeadingFlow sections={sections} geom={geom} />
     </>
   )
 }
 
-function frostMask(side: RulerSide, solid: number, gamma: number): string {
-  const dir = side === "right" ? "to left" : "to right"
+function frostMask(solid: number, gamma: number): string {
   const stops = [`black ${solid.toFixed(0)}%`]
   const steps = 8
   for (let k = 1; k < steps; k++) {
@@ -642,5 +515,5 @@ function frostMask(side: RulerSide, solid: number, gamma: number): string {
     stops.push(`rgba(0,0,0,${a.toFixed(3)}) ${pos.toFixed(1)}%`)
   }
   stops.push("transparent 100%")
-  return `linear-gradient(${dir}, ${stops.join(", ")})`
+  return `linear-gradient(to left, ${stops.join(", ")})`
 }
