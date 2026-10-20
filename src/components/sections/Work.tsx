@@ -278,7 +278,15 @@ export default function Work({ lenisRef }: WorkProps) {
           <small>{project.subtitle}</small>
         </span>
         <span className="g">{project.tech.slice(0, 3).join(" · ")}</span>
-        {imgSrc && <img className="m" src={imgSrc} alt={project.title} />}
+        {imgSrc && (
+          <img
+            className="m"
+            src={imgSrc}
+            alt={project.title}
+            loading="lazy"
+            decoding="async"
+          />
+        )}
       </a>
     )
   }
@@ -361,7 +369,14 @@ export default function Work({ lenisRef }: WorkProps) {
                 </div>
 
                 <div className="now-card-thumb">
-                  {imgSrc && <img src={imgSrc} alt={project.title} />}
+                  {imgSrc && (
+                    <img
+                      src={imgSrc}
+                      alt={project.title}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  )}
                   <div className="now-card-status">
                     <span className="pulse-dot" aria-hidden="true" />
                     <span>In Development</span>

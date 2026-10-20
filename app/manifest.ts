@@ -8,13 +8,25 @@ export default function manifest(): MetadataRoute.Manifest {
       "Software & AI Engineer specializing in Machine Learning, Computer Vision, Autonomous Systems, and Full-Stack Engineering.",
     start_url: "/",
     display: "standalone",
-    background_color: "#080808",
-    theme_color: "#080808",
+    background_color: "#09090a",
+    theme_color: "#09090a",
     icons: [
       {
-        src: "/images/desktop-profile-with-background.jpg",
-        sizes: "192x192 512x512",
-        type: "image/jpeg",
+        src: "/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      {
+        src: "/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icon.svg",
+        sizes: "any",
+        type: "image/svg+xml",
       },
     ],
   }

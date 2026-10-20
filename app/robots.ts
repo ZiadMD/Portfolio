@@ -9,22 +9,29 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
       },
-      // Explicitly allow leading AI search & indexing bots
+      // Explicitly allow leading AI search engines & LLM crawlers
       {
         userAgent: [
+          "Googlebot",
+          "Bingbot",
           "GPTBot",
           "ChatGPT-User",
+          "OAI-SearchBot",
           "ClaudeBot",
           "Claude-Web",
           "PerplexityBot",
           "Google-Extended",
           "Applebot",
+          "Applebot-Extended",
           "CCBot",
           "cohere-ai",
+          "Meta-ExternalAgent",
+          "Amazonbot",
         ],
         allow: "/",
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
+    host: baseUrl,
   }
 }

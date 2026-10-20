@@ -41,9 +41,9 @@ export default function Contact() {
     <>
       <section className="s" id="contact" data-l="~/contact" ref={sectionRef}>
         <p className="lab rv">Contact</p>
-        <p className="big">
+        <h2 className="big">
           Let’s build <em>something</em> together.
-        </p>
+        </h2>
         <p className="lead rv">
           Open to collaborations, freelance work, and interesting problems. If
           you have something worth building, I want to hear about it.
