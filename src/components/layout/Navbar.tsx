@@ -30,15 +30,20 @@ export default function Navbar({ activeSection, onNavigate }: NavbarProps) {
         aria-label="Ziad M. Sheashaa, home"
       >
         <span className="mark">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
+          <svg
+            viewBox="0 0 104.311 60.391"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
             <path
-              d="M5 5.5h14L5 18.5h14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="square"
+              d="M27.537 60.391 L104.311 46.436 L51.871 46.436 L72.37 19.647 L43.337 19.647 C43.337 19.647 31.994 10.065 31.415 9.582 C31.362 9.537 31.335 9.514 31.338 9.514 C37.577 9.514 83.812 9.514 83.812 9.514 L69.146 0 L0 0 L31.415 28.865 L53.664 28.865 Z"
+              fill="currentColor"
             />
-            <circle cx="19" cy="5.5" r="2.1" fill="var(--acc)" />
+            <path
+              d="M84.809 20.749 L84.809 36.348 L72.93 36.348 Z"
+              fill="currentColor"
+            />
           </svg>
         </span>
         <span>

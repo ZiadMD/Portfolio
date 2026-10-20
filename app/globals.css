@@ -101,15 +101,26 @@ em {
 }
 
 .mark {
-  width: 30px;
+  width: 36px;
   height: 30px;
   border: 1px solid var(--fg);
   display: grid;
   place-items: center;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.brand:hover .mark {
+  border-color: var(--acc);
 }
 .mark svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: auto;
+  display: block;
+}
+.mark svg path:last-child {
+  transition: fill 0.2s ease;
+}
+.brand:hover .mark svg path:last-child {
+  fill: var(--acc);
 }
 
 .nr {
