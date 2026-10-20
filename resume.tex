@@ -1,0 +1,252 @@
+%-------------
+% Resume in LaTeX
+% Template Author : Jake Gutierrez
+% Candidate       : Ziad Mohamed Sheashaa
+% Target Roles    : AI Engineer / Agentic AI & Generative AI Engineer
+%-------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{fontawesome5}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-5pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-4pt}]
+
+% Ensure generated PDF is machine readable / ATS parsable
+\pdfgentounicode=1
+
+%-------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-6pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-6pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-4pt}}
+
+%----------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%-----HEADING-----
+\begin{center}
+    \textbf{\Huge \scshape Ziad Mohamed Sheashaa} \\ \vspace{2pt}
+    \small +20 120 481 7795 $|$ 
+    \href{mailto:ziadmohamedgamal25@gmail.com}{\underline{ziadmohamedgamal25@gmail.com}} $|$
+    \href{https://www.linkedin.com/in/ziad-sheashaa/}{\underline{\faLinkedin\ in/ziad-sheashaa}} $|$
+    \href{https://github.com/ZiadMD}{\underline{\faGithub\ ZiadMD}}
+\end{center}
+
+%------SUMMARY------
+\section{Summary}
+    \resumeSubHeadingListStart
+      \resumeItem{AI Engineer specializing in Agentic \& Generative AI, LLM orchestration (LangGraph, Multi-Agent architectures), advanced RAG systems, and production API design. Combines state-of-the-art LLM engineering with a solid foundation in computer vision, edge AI deployment (ONNX, YOLO), and high-performance backend systems (FastAPI, Python, C++).}
+    \resumeSubHeadingListEnd
+
+%------EDUCATION------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Suez Canal University}{Ismailia, Egypt}
+      {Bachelor of Engineering in Computer Engineering}{Sep 2021 - Jul 2026}
+  \resumeSubHeadingListEnd
+
+%------TECHNICAL SKILLS------
+\section{Technical Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+     \textbf{Languages}{: Python, C++, TypeScript, JavaScript, SQL, HTML/CSS, Bash} \\
+     \textbf{Agentic \& Generative AI}{: LangGraph, LangChain, Multi-Agent Systems, RAG, Model Context Protocol (MCP), Vector DBs (ChromaDB, FAISS), Prompt Engineering, Structured Outputs (Pydantic/Zod), Tool Calling} \\
+     \textbf{AI/ML \& Computer Vision}{: PyTorch, TensorFlow, YOLOv8/YOLO, OpenCV, ONNX Runtime, Scikit-learn, Vision-Language Models (VLMs), Hugging Face} \\
+     \textbf{Backends \& Frameworks}{: FastAPI, REST APIs, WebSockets, Next.js, React, ROS2} \\
+     \textbf{Tools \& Infrastructure}{: Git \& GitHub, Linux, Docker, MongoDB, SQLite, CMake, Postman} \\
+     \textbf{Core Engineering}{: Data Structures \& Algorithms, Object-Oriented Programming (OOP), SOLID Principles, System Architecture, Design Patterns}
+    }}
+ \end{itemize}
+
+%------EXPERIENCE------
+\section{Experience}
+  \resumeSubHeadingListStart
+
+    \resumeSubheading
+      {AI Engineer}{Mar 2026 - Present}
+      {Nexus}{Ismailia, Egypt}
+      \resumeItemListStart
+        \resumeItem{Architected and deployed production-grade multi-agent systems and stateful workflows using LangGraph and LangChain, orchestrating frontier LLMs (OpenAI, Anthropic, Gemini) with robust error recovery and dynamic tool routing.}
+        \resumeItem{Engineered high-throughput FastAPI backends serving enterprise RAG pipelines, incorporating hybrid search (vector embeddings + BM25 keyword retrieval) and cross-encoder reranking to minimize hallucinations.}
+        \resumeItem{Implemented Model Context Protocol (MCP) servers and structured output parsing pipelines (Pydantic), guaranteeing type-safe execution between LLM reasoning layers and downstream software services.}
+        \resumeItem{Optimized inference latency and token consumption through prompt caching, dynamic context pruning, and automated evaluation benchmarks.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Generative AI Trainee}{Jul 2025 - Aug 2025}
+      {Information Technology Institute (ITI)}{Egypt}
+      \resumeItemListStart
+        \resumeItem{Completed intensive, specialized training on transformer architectures, LLM fine-tuning methodologies (LoRA/QLoRA), and advanced prompt engineering.}
+        \resumeItem{Engineered end-to-end RAG applications leveraging vector databases, semantic chunking strategies, and automated evaluation metrics to assess retrieval fidelity.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Artificial Intelligence Trainee}{Jul 2024 - Aug 2024}
+      {Information Technology Institute (ITI)}{Egypt}
+      \resumeItemListStart
+        \resumeItem{Completed intensive foundational AI training spanning statistical machine learning, deep neural networks (CNNs, RNNs), and computer vision pipelines.}
+        \resumeItem{Trained and evaluated computer vision and supervised learning models using PyTorch and Scikit-learn, executing rigorous data preprocessing and validation loops.}
+      \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+%------PROJECTS------
+\section{Projects}
+    \resumeSubHeadingListStart
+
+      \resumeProjectHeading
+          {\textbf{Nexcut} \emph{(Agentic Desktop Video Editor)} $|$ \emph{Gemma, ONNX Runtime, MCP, C++20, Electron}}{Jul 2026 - Present}
+          \resumeItemListStart
+            \resumeItem{Architected the AI agent subsystem for an on-device video editor, translating natural-language instructions into multi-track timeline edits via MCP-compliant tool executions.}
+            \resumeItem{Designed a deterministic object-grounding protocol (UUID-to-short-ref resolution) paired with a Zod validation-feedback retry loop, completely mitigating tool-call hallucinations on quantized local models.}
+            \resumeItem{Engineered high-speed local inference pipelines utilizing ONNX Runtime for lightweight models (Gemma, Qwen) to deliver sub-second offline editing commands.}
+          \resumeItemListEnd
+
+      \resumeProjectHeading
+          {\textbf{Vision-Based Desktop Automation} $|$ \emph{Gemini 2.0 Flash, GUI-Actor-3B (Qwen2.5-VL), PyTorch}}{May 2026}
+          \resumeItemListStart
+            \resumeItem{Built a hierarchical GUI automation agent utilizing Gemini 2.0 Flash as a strategic planner and GUI-Actor-3B as a real-time, on-screen visual grounding model.}
+            \resumeItem{Developed an autonomous execution engine translating UI bounding coordinates into precise OS-level mouse and keyboard actions with visual self-reflection loops to verify state transitions.}
+          \resumeItemListEnd
+
+      \resumeProjectHeading
+          {\textbf{SafeSpace} \emph{(Graduation Project)} $|$ \emph{YOLO, Raspberry Pi 5, FastAPI, OpenCV, Python}}{Sep 2025 - Jul 2026}
+          \resumeItemListStart
+            \resumeItem{Architected an edge-computing security system deployed on Raspberry Pi 5, processing multi-camera real-time streams for automated surveillance and access control.}
+            \resumeItem{Engineered an automated license-plate recognition (ALPR) pipeline using YOLO object detection and OCR, backed by an asynchronous FastAPI REST service with sub-second logging.}
+          \resumeItemListEnd
+
+      \resumeProjectHeading
+          {\textbf{TERRA Climate Education Platform} $|$ \emph{FastAPI, Scikit-learn, Gemini API, Next.js}}{Oct 2025}
+          \resumeItemListStart
+            \resumeItem{Developed an educational platform analyzing NASA climate data with Scikit-learn predictive models to forecast environmental metrics.}
+            \resumeItem{Integrated an interactive Gemini API chatbot with system prompt persona design alongside an interactive simulation that visualizes real-time climate impact metrics.}
+          \resumeItemListEnd
+
+      \resumeProjectHeading
+          {\textbf{Real-Time Facial Detection \& Analysis} $|$ \emph{C++, Qt 6, OpenCV, CMake}}{Dec 2024}
+          \resumeItemListStart
+            \resumeItem{Built a real-time facial feature detection pipeline in modern C++ with OpenCV, optimizing multi-scale image processing and frame-buffer throughput.}
+            \resumeItem{Engineered a responsive Qt desktop GUI providing live webcam feeds, bounding overlays, and real-time inference latency diagnostics.}
+          \resumeItemListEnd
+
+    \resumeSubHeadingListEnd
+
+%------VOLUNTEERING & LEADERSHIP------
+\section{Leadership \& Volunteering}
+  \resumeSubHeadingListStart
+
+    \resumeSubheading
+      {Autonomous Driving Team Leader}{Oct 2024 - Present}
+      {SCU Racing Team · Suez Canal University}{Ismailia, Egypt}
+      \resumeItemListStart
+        \resumeItem{Lead a 20-engineer division developing autonomous racing software stacks using ROS2, computer vision, and sensor fusion.}
+        \resumeItem{Define software architectures, direct perception/planning/control modules, and conduct peer code reviews to ensure system reliability.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {AI Instructor}{Sep 2025 - Present}
+      {IEEE - SCU Student Branch}{Ismailia, Egypt}
+      \resumeItemListStart
+        \resumeItem{Designed and instructed comprehensive technical workshops on machine learning and computer vision fundamentals to 50+ students.}
+        \resumeItem{Mentored undergraduate students through practical project implementations, model debugging, and algorithmic problem solving.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Autonomous Driving Team Member}{Mar 2024 - Oct 2024}
+      {SCU Racing Team · Suez Canal University}{Ismailia, Egypt}
+      \resumeItemListStart
+        \resumeItem{Developed core perception nodes and closed-loop control algorithms in ROS2 and Python, contributing to a 5th place award in the EVER Gen 5th international autonomous electric vehicle competition.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {AI Technical Member}{Oct 2023 - Sep 2025}
+      {IEEE - SCU Student Branch}{Ismailia, Egypt}
+      \resumeItemListStart
+        \resumeItem{Developed a full-stack movie recommendation engine using unsupervised ML (Python, Scikit-learn, MongoDB) and delivered introductory AI training sessions.}
+      \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+%------CERTIFICATIONS & COURSES------
+\section{Certifications \& Coursework}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+     \textbf{Certifications}{: Google AI Professional (Coursera, Jul 2026), HCIA-AI (Huawei, Jan 2023), Career Essentials in Generative AI (Microsoft \& LinkedIn, Nov 2023)} \\ \vspace{2pt}
+     \textbf{Coursework}{: ROS2 \& Software Engineering (Robotics Corner), Deep Learning \& Machine Learning (E.Camp), Artificial Intelligence (Zewail City of Science and Technology, Huawei)}
+    }}
+ \end{itemize}
+
+%------LANGUAGES------
+\section{Languages}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+     \textbf{Arabic}{: Native} \hspace{2cm} \textbf{English}{: Advanced / Professional Working Proficiency}
+    }}
+ \end{itemize}
+
+%----------------------
+\end{document}

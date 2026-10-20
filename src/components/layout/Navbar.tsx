@@ -71,8 +71,11 @@ export default function Navbar({ activeSection, onNavigate }: NavbarProps) {
         <a
           className="btn cv"
           id="cv"
-          href="#contact"
-          onClick={(e) => handleClick(e, "contact")}
+          href="/Ziad_Mohamed_Sheashaa_CV.pdf"
+          download="Ziad_Mohamed_Sheashaa_CV.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Download Ziad Mohamed Sheashaa CV (PDF)"
         >
           CV ↓
         </a>

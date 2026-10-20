@@ -104,6 +104,11 @@ export const CONTACT_LINKS: SocialLink[] = [
     value: "Ziad M. Sheashaa",
     href: "https://www.linkedin.com/in/ziad-sheashaa/",
   },
+  {
+    label: "Resume",
+    value: "Download CV (PDF) ↓",
+    href: "/Ziad_Mohamed_Sheashaa_CV.pdf",
+  },
   { label: "Location", value: "Available Remote · Ismailia, EG", href: "#" },
 ]
 

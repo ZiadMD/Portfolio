@@ -60,12 +60,14 @@ export default function Contact() {
               )
             }
             const isExternal = link.href.startsWith("http")
+            const isDownload = link.href.endsWith(".pdf")
             return (
               <a
                 key={idx}
                 href={link.href}
-                target={isExternal ? "_blank" : undefined}
-                rel={isExternal ? "noopener noreferrer" : undefined}
+                target={isExternal || isDownload ? "_blank" : undefined}
+                rel={isExternal || isDownload ? "noopener noreferrer" : undefined}
+                download={isDownload ? "Ziad_Mohamed_Sheashaa_CV.pdf" : undefined}
               >
                 <small>{link.label}</small>
                 {link.value}
