@@ -11,11 +11,15 @@
 // Keyboard Escape listener for modal
 
 // Draggable window title bar
-/* Floating Peek Cursor Preview */ /* Window Dialog Modal */
+/* Floating Peek Cursor Preview */ /* Window Dialog Modal */ /* Working on now subsection */ /* Diagonal Coming Soon ribbon */ /* Floating Peek Cursor Preview */ /* Window Dialog Modal */
 
 import { useEffect, useRef, useState, useMemo } from "react"
 import Lenis from "lenis"
-import { PROJECTS } from "../../data/portfolioData"
+import {
+  PROJECTS,
+  FEATURED_PROJECTS,
+  WORKING_ON_NOW_PROJECTS,
+} from "../../data/portfolioData"
 import { Project } from "../../types/portfolio"
 
 function generateProjectArt(title: string, hue: number): string {
@@ -61,8 +65,8 @@ export default function Work({ lenisRef }: WorkProps) {
   const [projectImages, setProjectImages] = useState<string[]>([])
 
   const SEL = 6
-  const initialProjects = useMemo(() => PROJECTS.slice(0, SEL), [])
-  const extraProjects = useMemo(() => PROJECTS.slice(SEL), [])
+  const initialProjects = useMemo(() => FEATURED_PROJECTS.slice(0, SEL), [])
+  const extraProjects = useMemo(() => FEATURED_PROJECTS.slice(SEL), [])
   useEffect(() => {
     const images = PROJECTS.map(
       (p) => p.img || generateProjectArt(p.title, p.hue),
@@ -289,27 +293,115 @@ export default function Work({ lenisRef }: WorkProps) {
       <div id="list" className="rv" ref={listRef}>
         {initialProjects.map((p, idx) => renderProjectRow(p, idx))}
 
-        <div id="more" className={expanded ? "open" : ""}>
-          <div id="moreIn">
-            {extraProjects.map((p, idx) => renderProjectRow(p, SEL + idx))}
+        {extraProjects.length > 0 && (
+          <div id="more" className={expanded ? "open" : ""}>
+            <div id="moreIn">
+              {extraProjects.map((p, idx) => renderProjectRow(p, SEL + idx))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="mr">
-        <span id="cnt">
-          Showing {expanded ? PROJECTS.length : SEL} of {PROJECTS.length}
-        </span>
-        <button
-          className="btn"
-          id="seeMore"
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded
-            ? "See fewer −"
-            : `See more projects (${PROJECTS.length - SEL}) +`}
-        </button>
+      {extraProjects.length > 0 && (
+        <div className="mr">
+          <span id="cnt">
+            Showing {expanded ? FEATURED_PROJECTS.length : SEL} of{" "}
+            {FEATURED_PROJECTS.length}
+          </span>
+          <button
+            className="btn"
+            id="seeMore"
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded
+              ? "See fewer −"
+              : `See more projects (${FEATURED_PROJECTS.length - SEL}) +`}
+          </button>
+        </div>
+      )}
+
+      {}
+      <div id="now" className="now-section rv">
+        <div className="now-header">
+          <div className="now-badge">
+            <span className="pulse-dot" aria-hidden="true" />
+            <span>Active Pipeline</span>
+          </div>
+          <h3 className="now-title">
+            Working on <em>now</em>.
+          </h3>
+          <p className="now-desc">
+            Projects currently in active development — from hackathon prototypes
+            to production builds.
+          </p>
+        </div>
+
+        <div className="now-grid">
+          {WORKING_ON_NOW_PROJECTS.map((project, idx) => {
+            const globalIdx = FEATURED_PROJECTS.length + idx
+            const imgSrc = projectImages[globalIdx] || project.img
+            return (
+              <div
+                key={project.id}
+                className="now-card"
+                role="button"
+                tabIndex={0}
+                onClick={() => openModal(project)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    openModal(project)
+                  }
+                }}
+              >
+                {}
+                <div className="diagonal-ribbon-wrapper" aria-hidden="true">
+                  <div className="diagonal-ribbon">Coming Soon</div>
+                </div>
+
+                <div className="now-card-thumb">
+                  {imgSrc && <img src={imgSrc} alt={project.title} />}
+                  <div className="now-card-status">
+                    <span className="pulse-dot" aria-hidden="true" />
+                    <span>In Development</span>
+                  </div>
+                </div>
+
+                <div className="now-card-body">
+                  <div className="now-card-meta">
+                    <span className="now-card-cat">{project.category}</span>
+                    {project.note && (
+                      <span className="now-card-note">{project.note}</span>
+                    )}
+                  </div>
+                  <h4 className="now-card-title">{project.title}</h4>
+                  <p className="now-card-sub">{project.subtitle}</p>
+                  <p className="now-card-desc">{project.description}</p>
+                  <div className="now-card-tags">
+                    {project.tech.map((t, tIdx) => (
+                      <span key={tIdx}>{t}</span>
+                    ))}
+                  </div>
+                  <div className="now-card-footer">
+                    <span className="now-card-action">View details ↗</span>
+                    {project.githubUrl && (
+                      <a
+                        href={project.githubUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="now-card-gh"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        GitHub ↗
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {}
@@ -362,15 +454,28 @@ export default function Work({ lenisRef }: WorkProps) {
             </div>
 
             <div id="wbody">
-              <img
-                src={
-                  projectImages[
-                    PROJECTS.findIndex((p) => p.id === selectedProject.id)
-                  ] || selectedProject.img
-                }
-                alt={selectedProject.title}
-              />
+              <div className="wimg-wrap">
+                <img
+                  src={
+                    projectImages[
+                      PROJECTS.findIndex((p) => p.id === selectedProject.id)
+                    ] || selectedProject.img
+                  }
+                  alt={selectedProject.title}
+                />
+                {selectedProject.comingSoon && (
+                  <div className="diagonal-ribbon-wrapper" aria-hidden="true">
+                    <div className="diagonal-ribbon">Coming Soon</div>
+                  </div>
+                )}
+              </div>
               <div>
+                {selectedProject.comingSoon && (
+                  <div className="now-badge" style={{ marginBottom: 12 }}>
+                    <span className="pulse-dot" aria-hidden="true" />
+                    <span>Working on now · Coming Soon</span>
+                  </div>
+                )}
                 <small>{selectedProject.category}</small>
                 <h3>{selectedProject.title}</h3>
                 <p>{selectedProject.description}</p>

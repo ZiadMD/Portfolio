@@ -41,7 +41,7 @@ export const SKILLS: string[] = [
 ]
 
 export const STATS: StatItem[] = [
-  { value: 10, label: "Projects" },
+  { value: 8, label: "Projects" },
   { value: 5, label: "Engineering domains" },
   { value: 13, label: "Core technologies" },
 ]
@@ -107,7 +107,7 @@ export const CONTACT_LINKS: SocialLink[] = [
   { label: "Location", value: "Available Remote · Ismailia, EG", href: "#" },
 ]
 
-export const PROJECTS: Project[] = [
+export const FEATURED_PROJECTS: Project[] = [
   {
     id: 1,
     title: "Basira",
@@ -122,12 +122,12 @@ export const PROJECTS: Project[] = [
   },
   {
     id: 2,
-    title: "NexCut",
-    subtitle: "Multi-track desktop video editor in C++20",
+    title: "Nexcut Studio",
+    subtitle: "Agentic multi-track desktop video editor with on-device AI",
     description:
-      "A high-performance multi-track desktop video editor in C++20 with a strictly decoupled headless engine, timeline architecture, FFmpeg decoding, and Qt 6 GUI.",
-    tech: ["C++20", "Qt 6", "FFmpeg", "Audio/Video pipeline"],
-    category: "Software",
+      "A high-performance multi-track desktop video editor in C++20 with an on-device AI service. Built with a strictly decoupled headless engine, timeline architecture, FFmpeg decoding, Qt 6 / Electron interface, and an agent layer featuring MCP-compliant tools, validated tool calls with retry loops, Whisper, SAM2, and Kokoro.",
+    tech: ["C++20", "Electron", "Qt 6", "FFmpeg", "MCP", "Whisper", "SAM2"],
+    category: "AI",
     githubUrl: "https://github.com/Mohanadmomen/Nxtcut",
     img: "/images/nexcut.jpg",
     hue: 20,
@@ -181,29 +181,24 @@ export const PROJECTS: Project[] = [
     img: "https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=800&h=560&fit=crop&auto=format",
     hue: 280,
   },
+]
+
+export const WORKING_ON_NOW_PROJECTS: Project[] = [
   {
     id: 7,
-    title: "StudentOps",
-    subtitle: "Platform for student activities and organizations",
+    title: "Thaj",
+    subtitle: "Platform for student activities & organizations",
     description:
-      "A platform for student activities and organizations with flexible roles and permissions, task submission and review, attendance tracking, scoring, and an AI agent that sends reminders and follows up.",
-    note: "Started at an AWS hackathon and kept going afterwards.",
+      "A comprehensive platform for student activities and organizations with flexible roles and permissions, task submission and review, attendance tracking, scoring, and an AI agent that sends reminders and automated follow-ups.",
+    note: "Started at an AWS hackathon and actively in development.",
     tech: ["React", "FastAPI", "Supabase", "AI agents"],
     category: "Software",
     hue: 170,
+    comingSoon: true,
+    isWorkingOnNow: true,
   },
   {
     id: 8,
-    title: "Nexcut Studio",
-    subtitle: "Agentic video editor with on-device AI",
-    description:
-      "An Electron-based agentic non-linear video editor with an on-device AI service. My part is the agent layer: MCP-compliant tools, validated tool calls with a retry loop, and a model stack with Whisper, SAM2 and Kokoro.",
-    tech: ["Electron", "MCP", "Zod", "Whisper", "SAM2"],
-    category: "AI",
-    hue: 300,
-  },
-  {
-    id: 9,
     title: "Fitness, Nutrition & PT",
     subtitle: "Graduation project: online care platform",
     description:
@@ -212,5 +207,12 @@ export const PROJECTS: Project[] = [
     category: "Software",
     githubUrl: "https://github.com/ZiadMD/Nutrition-Graduation-Project",
     hue: 100,
+    comingSoon: true,
+    isWorkingOnNow: true,
   },
+]
+
+export const PROJECTS: Project[] = [
+  ...FEATURED_PROJECTS,
+  ...WORKING_ON_NOW_PROJECTS,
 ]

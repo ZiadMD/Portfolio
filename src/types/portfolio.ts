@@ -12,6 +12,8 @@ export interface Project {
   githubUrl?: string
   img?: string
   hue: number
+  comingSoon?: boolean
+  isWorkingOnNow?: boolean
 }
 
 export interface ExperienceItem {
