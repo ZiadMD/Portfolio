@@ -180,7 +180,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('zs-theme')||'dark';document.documentElement.dataset.theme=t;}catch(e){}})();`,
+            __html: `(function(){try{localStorage.removeItem('zs-theme');document.documentElement.dataset.theme='dark';}catch(e){}})();`,
           }}
         />
         <script

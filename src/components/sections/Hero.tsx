@@ -90,19 +90,6 @@ export default function Hero() {
     const ei = (k: number) => k * k * k
     const eo = (k: number) => 1 - Math.pow(1 - k, 4)
 
-    const updateColors = () => {
-      const isLight = document.documentElement.dataset.theme === "light"
-      INK = isLight ? "#17171a" : "#fff"
-      INKRGB = isLight ? "23,23,26" : "255,255,255"
-      GRY = isLight ? "#6d6e72" : "#a9a9ad"
-    }
-    updateColors()
-
-    const onThemeChange = () => {
-      updateColors()
-    }
-    window.addEventListener("zs-theme-change", onThemeChange)
-
     const rnd = (() => {
       let s = 7
       return () => (s = (s * 16807) % 2147483647) / 2147483647
@@ -587,7 +574,6 @@ export default function Hero() {
       cancelAnimationFrame(animId)
       observer.disconnect()
       window.removeEventListener("resize", onResize)
-      window.removeEventListener("zs-theme-change", onThemeChange)
       hero.removeEventListener("pointermove", onPointerMove)
       hero.removeEventListener("pointerleave", onPointerLeave)
       desktopImg.onload = null

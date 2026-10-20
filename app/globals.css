@@ -19,20 +19,6 @@
   box-sizing: border-box;
 }
 
-html[data-theme="light"] {
-  --bg: #f3f2ee;
-  --fg: #121214;
-  --mut: #6d6e72;
-  --line: #d6d5d0;
-  --soft: #3c3d41;
-  --glass: rgba(243, 242, 238, 0.6);
-  --glass2: rgba(243, 242, 238, 0.8);
-  --panel: #fbfaf7;
-  --veil: rgba(255, 255, 255, 0.35);
-  --hero: radial-gradient(65% 60% at 50% 56%, #fff 0, #f3f2ee 100%);
-  color-scheme: light;
-}
-
 *, *::before, *::after {
   box-sizing: inherit;
   border-radius: 0;
@@ -168,15 +154,6 @@ em {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.6;
-}
-.ib .sun {
-  display: none;
-}
-html[data-theme="light"] .ib .sun {
-  display: block;
-}
-html[data-theme="light"] .ib .moon {
-  display: none;
 }
 
 .cv {
@@ -1150,24 +1127,6 @@ h2, .big {
 .now-card-gh:hover {
   color: var(--fg);
   border-bottom-color: var(--fg);
-}
-
-/* Light mode adjustments */
-html[data-theme="light"] .now-card {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-}
-html[data-theme="light"] .now-card:hover {
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.1);
-  border-color: var(--acc);
-}
-html[data-theme="light"] .now-card-thumb {
-  background: #e8e7e2;
-}
-html[data-theme="light"] .now-card-tags span {
-  background: rgba(0, 0, 0, 0.03);
-}
-html[data-theme="light"] .diagonal-ribbon {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 @media (max-width: 700px) {
