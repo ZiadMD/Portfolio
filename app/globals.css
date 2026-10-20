@@ -90,37 +90,24 @@ em {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
   text-decoration: none;
-  font: 700 15px var(--disp);
-  letter-spacing: -0.01em;
+  padding: 4px 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
-.brand i {
-  font-style: normal;
-  color: var(--acc);
+.brand:hover {
+  transform: translateY(-1px);
 }
-
-.mark {
-  width: 36px;
-  height: 30px;
-  border: 1px solid var(--fg);
-  display: grid;
-  place-items: center;
-  transition: border-color 0.2s ease, transform 0.2s ease;
-}
-.brand:hover .mark {
-  border-color: var(--acc);
-}
-.mark svg {
-  width: 22px;
-  height: auto;
+.brand-logo {
+  height: 32px;
+  width: auto;
+  max-width: 100%;
+  color: var(--fg);
   display: block;
+  transition: color 0.25s ease, filter 0.25s ease;
 }
-.mark svg path:last-child {
-  transition: fill 0.2s ease;
-}
-.brand:hover .mark svg path:last-child {
-  fill: var(--acc);
+.brand:hover .brand-logo {
+  color: var(--acc);
+  filter: drop-shadow(0 0 10px var(--acc-glow));
 }
 
 .nr {

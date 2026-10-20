@@ -66,8 +66,12 @@ export default function Contact() {
                 key={idx}
                 href={link.href}
                 target={isExternal || isDownload ? "_blank" : undefined}
-                rel={isExternal || isDownload ? "noopener noreferrer" : undefined}
-                download={isDownload ? "Ziad_Mohamed_Sheashaa_CV.pdf" : undefined}
+                rel={
+                  isExternal || isDownload ? "noopener noreferrer" : undefined
+                }
+                download={
+                  isDownload ? "Ziad_Mohamed_Sheashaa_CV.pdf" : undefined
+                }
               >
                 <small>{link.label}</small>
                 {link.value}
