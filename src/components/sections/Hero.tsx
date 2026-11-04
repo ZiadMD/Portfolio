@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "motion/react"
 import { ICONS, PULL, ORB } from "../../data/heroIcons"
 import { DESKTOP_PHOTO_SRC, MOBILE_PHOTO_SRC } from "../../data/photoSrc"
 import { SKILLS } from "../../data/portfolioData"
+import { lenisRef } from "../../lib/lenis-ref"
 
 interface PhotoCell {
   tx: number
@@ -28,6 +29,7 @@ interface LogoItem {
   j: number
   dl: number
   sz: number
+  hitT: number // timeline second it reached the core, or -1
 }
 
 interface SpiralItem {
@@ -47,6 +49,49 @@ interface OrbitItem {
   th: number
   sz: number
 }
+
+/** One dot of the particle name: where it starts, where the letter is. */
+interface NameDot {
+  sx: number
+  sy: number
+  tx: number
+  ty: number
+  dl: number
+  r: number
+  acc: boolean
+  sw: number
+}
+
+/*
+ * Intro timeline, in seconds. One story: your name forms from dust and
+ * dissolves into the galaxy, your stack is absorbed into its core, the
+ * core goes silent, then bursts into your portrait and your name flies
+ * back out of it. The real heading text only appears once the particle
+ * name has landed, so text and particles never pull apart.
+ *
+ * The intro is its own screen: the rest of the portfolio (nav, ruler,
+ * status line, scrolling) is held back until `end`.
+ */
+const TL = {
+  nameIn: 0.1, // dust starts converging into the name
+  nameOut: 1.5, // the whole particle name lifts off into the galaxy
+  nameGone: 2.5,
+  spiralIn: 1.0,
+  logosIn: 1.7,
+  logoGap: 0.17,
+  logoDur: 1.0,
+  collapse: 3.0,
+  silence: 5.0, // everything freezes on one bright point
+  burst: 5.32, // flash, shockwave, portrait
+  returnIn: 5.62, // the name flies back out of the core
+  returnDur: 0.8,
+  textIn: 6.65, // real heading crossfades in over the landed particles
+  textDone: 7.0,
+  end: 7.25, // portfolio is revealed
+  shortStart: 4.4, // return visitors start here (mid-collapse)
+} as const
+
+const INTRO_SEEN_KEY = "zs-intro-seen"
 
 // Ambient floating particles using Motion
 const AMBIENT_PARTICLES = Array.from({ length: 18 }).map((_, i) => ({
@@ -82,6 +127,8 @@ export default function Hero() {
   const spiralCanvasRef = useRef<HTMLCanvasElement>(null)
   const shadowCanvasRef = useRef<HTMLCanvasElement>(null)
   const replayTriggerRef = useRef<(() => void) | null>(null)
+  const skipTriggerRef = useRef<(() => void) | null>(null)
+  const progressRef = useRef<HTMLSpanElement>(null)
   const reduceMotion = useReducedMotion()
 
   // Canvas particle simulations
@@ -126,6 +173,23 @@ export default function Hero() {
     let T0 = performance.now()
     let vis = true
     const M = { x: -1e4, y: -1e4 }
+
+    // Intro playback state
+    let nameDots: NameDot[] = []
+    let charge = 0 // 0..1, grows as each logo is absorbed into the core
+    let startT = 0 // timeline position playback began at (0 or TL.shortStart)
+    let playingNow = false
+    let frozenT: number | null = null // dev inspection only
+    const h1El = hero.querySelector<HTMLElement>(".cap h1")
+    const opCache = new Map<HTMLElement, number>()
+    const setOp = (el: HTMLElement | null, v: number, lift = 0) => {
+      if (!el) return
+      const r = Math.round(v * 1000) / 1000
+      if (opCache.get(el) === r) return
+      opCache.set(el, r)
+      el.style.opacity = String(r)
+      el.style.transform = lift && r < 1 ? `translateY(${(1 - r) * lift}px)` : ""
+    }
 
     // Organic aspect ratio: preserves spiral shape without extreme pancake stretching
     const wide = () => (W > H ? Math.min(1.22, 1 + (W / H - 1) * 0.18) : 1)
@@ -199,8 +263,9 @@ export default function Hero() {
         arm: i % 4,
         u0: 0.78 + (i % 3) * 0.06,
         j: (((i * 1.618) % 1) - 0.5) * 0.25,
-        dl: i * 0.21,
+        dl: i * TL.logoGap,
         sz: isMobile ? 1.45 : 1.6,
+        hitT: -1,
       }))
 
       orbits = ORB.map((k, i) => ({
@@ -209,6 +274,71 @@ export default function Hero() {
         th: (i >> 1) * (6.2832 / (ORB.length / 2)) + (i % 2) * 0.5,
         sz: isMobile ? 1.5 : 1.7,
       }))
+    }
+
+    /**
+     * Sample the real <h1> text, in its computed font, at its exact place in
+     * the hero, so the particle name lands where the heading text appears.
+     * Multi-line headings fall back to a plain fade (no particle name).
+     */
+    function buildName() {
+      nameDots = []
+      if (!h1El || !hero) return
+      const cs = getComputedStyle(h1El)
+      const F = parseFloat(cs.fontSize)
+      const lineH = parseFloat(cs.lineHeight) || F
+      const hr = hero.getBoundingClientRect()
+      const r = h1El.getBoundingClientRect()
+      if (!F || r.width < 10 || r.height > lineH * 1.6) return
+
+      const text = (h1El.textContent || "").trim()
+      const pad = Math.ceil(F * 0.3)
+      const cw = Math.ceil(r.width + pad * 2)
+      const ch = Math.ceil(lineH + pad * 2)
+      const c = document.createElement("canvas")
+      c.width = cw
+      c.height = ch
+      const g = c.getContext("2d", { willReadFrequently: true })
+      if (!g) return
+      g.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
+      if ("letterSpacing" in g) {
+        ;(g as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing =
+          cs.letterSpacing === "normal" ? "0px" : cs.letterSpacing
+      }
+      g.textBaseline = "alphabetic"
+      g.fillStyle = "#fff"
+      const m = g.measureText(text)
+      const asc = m.fontBoundingBoxAscent || F * 0.8
+      const desc = m.fontBoundingBoxDescent || F * 0.2
+      // CSS puts a single line's glyph box in the middle of the line box.
+      const base = pad + (lineH - (asc + desc)) / 2 + asc
+      g.fillText(text, pad, base)
+
+      const d = g.getImageData(0, 0, cw, ch).data
+      const step = Math.max(2, Math.round(F / 28))
+      const ox = r.left - hr.left - pad
+      const oy = r.top - hr.top - pad
+      for (let y = 0; y < ch; y += step) {
+        for (let x = 0; x < cw; x += step) {
+          if (d[(y * cw + x) * 4 + 3] < 128) continue
+          const tx = ox + x
+          const ty = oy + y
+          // Start as dust scattered over the hero, biased toward the top.
+          const sx = rnd() * W
+          const sy = rnd() * H * 0.85
+          nameDots.push({
+            sx,
+            sy,
+            tx,
+            ty,
+            // Left-to-right sweep plus a little jitter.
+            dl: ((tx - (r.left - hr.left)) / r.width) * 0.38 + rnd() * 0.08,
+            r: step * (0.38 + rnd() * 0.12),
+            acc: rnd() < 0.07,
+            sw: (rnd() - 0.5) * 2.4,
+          })
+        }
+      }
     }
 
     function buildPhoto() {
@@ -370,21 +500,67 @@ export default function Hero() {
 
       buildSpiral()
       buildLogos()
+      buildName()
       if (img) buildPhoto()
     }
 
+    /**
+     * Galaxy state over the timeline: s = radius scale, al = brightness,
+     * sp = rotation speed. Dark while the name forms, then it fades in,
+     * collapses with accelerating spin, stops dead (the silence), and
+     * bursts back out.
+     */
     function state(t: number) {
-      if (t < 0.8) return { s: 1, al: (t / 0.8) * 0.8, sp: 0.35 }
-      if (t < 4.8) {
-        const u = (t - 0.8) / 4.0
-        return { s: 1 - 0.97 * ei(u), al: 0.35 + 0.25 * u, sp: 0.35 + 4.2 * ei(u) }
+      if (t < TL.spiralIn) return { s: 1, al: 0, sp: 0.35 }
+      if (t < TL.collapse) {
+        const u = clamp((t - TL.spiralIn) / 1.0)
+        return { s: 1, al: 0.5 * u, sp: 0.35 }
       }
-      if (t < 5.8) return { s: 0.03, al: 1, sp: 5.2 }
-      if (t < 7.4) {
-        const u = eo(clamp((t - 5.8) / 1.6))
-        return { s: 0.03 + 0.97 * u, al: 1 - 0.76 * u, sp: 5.2 - 5.12 * u }
+      if (t < TL.silence) {
+        const u = (t - TL.collapse) / (TL.silence - TL.collapse)
+        return { s: 1 - 0.97 * ei(u), al: 0.5 + 0.5 * u, sp: 0.35 + 4.8 * ei(u) }
+      }
+      if (t < TL.burst) {
+        // The silence: no rotation, the core draws in a touch tighter.
+        const u = (t - TL.silence) / (TL.burst - TL.silence)
+        return { s: 0.03 - 0.012 * eo(u), al: 1, sp: 0 }
+      }
+      if (t < TL.burst + 1.6) {
+        const u = eo(clamp((t - TL.burst) / 1.6))
+        return { s: 0.018 + 0.982 * u, al: 1 - 0.76 * u, sp: 6 - 5.92 * u }
       }
       return { s: 1, al: 0.24, sp: 0.08 }
+    }
+
+    /** The core: a point the stack is absorbed into, brighter with each logo. */
+    function drawCore(t: number) {
+      if (t < TL.logosIn || t > TL.burst + 0.15) return
+      let pulse = 0
+      for (const L of logos) {
+        if (L.hitT >= 0 && t >= L.hitT) pulse += Math.exp(-(t - L.hitT) * 7)
+      }
+      const silent = t >= TL.silence && t < TL.burst
+      // In the silence the core holds full charge with a faint tremor.
+      const k = silent ? 1 : charge
+      const tremor = silent ? 1 + 0.08 * Math.sin(t * 90) : 1
+      const base = (1.5 + 5 * k + 4 * Math.min(1, pulse)) * tremor
+      const fade = t > TL.burst ? 1 - (t - TL.burst) / 0.15 : 1
+
+      sx!.fillStyle = "#ff4a3d"
+      sx!.globalAlpha = (0.12 + 0.18 * k) * fade
+      sx!.beginPath()
+      sx!.arc(cx, cy, base * 3.2, 0, 6.283)
+      sx!.fill()
+      sx!.globalAlpha = (0.35 + 0.4 * k) * fade
+      sx!.beginPath()
+      sx!.arc(cx, cy, base * 1.7, 0, 6.283)
+      sx!.fill()
+      sx!.fillStyle = INK
+      sx!.globalAlpha = Math.min(1, 0.6 + 0.4 * k + 0.3 * pulse) * fade
+      sx!.beginPath()
+      sx!.arc(cx, cy, base, 0, 6.283)
+      sx!.fill()
+      sx!.globalAlpha = 1
     }
 
     function drawSpiral(t: number, dt: number) {
@@ -394,8 +570,10 @@ export default function Hero() {
 
       const R = Math.min(W, H) * 0.22
       const w = wide()
-      const isPostIntro = t >= 7.2
+      const isPostIntro = t >= TL.burst + 1.4
       const hasMouse = M.x > -1e3 && M.y > -1e3
+      // Twinkle freezes during the silence so the stillness is total.
+      const tt = t >= TL.silence && t < TL.burst ? TL.silence : t
 
       // Gentle mouse parallax tilt for cosmic depth
       const parallaxX = isPostIntro && hasMouse ? (M.x - cx) * 0.025 : 0
@@ -409,7 +587,7 @@ export default function Hero() {
         let y = cy + Math.sin(a) * r + parallaxY * (1 - p.u * 0.5)
 
         // Dynamic star twinkling
-        const tw = 0.75 + 0.25 * Math.sin(t * p.twinkleSpeed + p.twinklePhase)
+        const tw = 0.75 + 0.25 * Math.sin(tt * p.twinkleSpeed + p.twinklePhase)
         const al =
           Math.min(1, st.al * 1.5) * (0.28 + 0.72 * (1 - p.u * 0.6)) * p.br * tw
         const s = p.sz * (0.55 + (1 - p.u) * 0.9)
@@ -433,9 +611,11 @@ export default function Hero() {
       }
       sx!.globalAlpha = 1
 
-      // Dual Shockwave Rings during transition (t: 5.8s -> 7.4s)
-      if (t > 5.8 && t < 7.4) {
-        const u = (t - 5.8) / 1.6
+      drawCore(t)
+
+      // Dual shockwave rings from the burst
+      if (t > TL.burst && t < TL.burst + 1.6) {
+        const u = (t - TL.burst) / 1.6
         const maxR = Math.max(W, H) * 0.75
 
         // Primary starlight shockwave ring
@@ -458,12 +638,23 @@ export default function Hero() {
     }
 
     function drawLogos(t: number) {
-      if (t > 5.2) return
+      // Each logo that has reached the core counts toward its charge.
+      let hits = 0
+      for (const L of logos) {
+        const u = (t - TL.logosIn - L.dl) / TL.logoDur
+        if (u >= 0.92) {
+          if (L.hitT < 0) L.hitT = TL.logosIn + L.dl + 0.92 * TL.logoDur
+          hits++
+        }
+      }
+      charge = logos.length ? hits / logos.length : 0
+
+      if (t > TL.silence) return
       const w = wide()
       const st = state(t)
 
       logos.forEach((L) => {
-        const u = clamp((t - 0.35 - L.dl) / 1.15)
+        const u = clamp((t - TL.logosIn - L.dl) / TL.logoDur)
         if (u <= 0 || u >= 1) return
         const e = Math.pow(u, 1.85)
         const u_eff = L.u0 * (1 - e)
@@ -490,7 +681,8 @@ export default function Hero() {
           } else {
             const peel = clamp((u - tearThreshold) / (1 - tearThreshold))
             const eP = Math.pow(peel, 1.7)
-            const u_part = u_eff * (1 - eP * 0.95)
+            // Torn particles spiral all the way into the core.
+            const u_part = u_eff * (1 - eP)
             const partR = u_part * sc * st.s + q[2] * ks * (1 - peel)
             const partAngle =
               L.arm * 1.5708 +
@@ -522,8 +714,8 @@ export default function Hero() {
     }
 
     function drawOrbit(t: number, dt: number) {
-      if (t < 5.8 || !orbits.length) return
-      const f = eo(clamp((t - 5.8) / 1.6))
+      if (t < TL.burst || !orbits.length) return
+      const f = eo(clamp((t - TL.burst) / 1.6))
       const w = wide()
       const R = Math.min(W, H) * 0.18
       oA += 0.2 * dt
@@ -559,8 +751,8 @@ export default function Hero() {
 
     function drawPhoto(t: number) {
       px!.clearRect(0, 0, W, H)
-      if (!ph || t < 5.8) return
-      const te = t - 5.8
+      if (!ph || t < TL.burst) return
+      const te = t - TL.burst
       const isIntro = te < 1.8
 
       if (isIntro) {
@@ -602,6 +794,111 @@ export default function Hero() {
       }
     }
 
+    /**
+     * The particle name: dust converges into the letters (left-to-right
+     * sweep), holds, then lifts off and is pulled into the galaxy's core
+     * while the real heading text fades in underneath.
+     */
+    function drawName(t: number) {
+      if (!nameDots.length) return
+      const opening = t >= TL.nameIn && t <= TL.nameGone && startT === 0
+      const returning = t >= TL.returnIn && t <= TL.textDone
+      if (!opening && !returning) return
+
+      if (returning) {
+        // The name flies back out of the core with a swirl and lands on the
+        // letters; once landed it holds still and fades as the real text
+        // fades in on exactly the same spot.
+        const fade = 1 - clamp((t - TL.textIn) / (TL.textDone - TL.textIn))
+        for (let i = 0; i < nameDots.length; i++) {
+          const n = nameDots[i]
+          const k = clamp((t - TL.returnIn - n.dl * 0.4) / TL.returnDur)
+          if (k <= 0) continue
+          const e = eo(k)
+          const dx = n.tx - cx
+          const dy = n.ty - cy
+          const rot = (1 - e) * (1.6 + n.sw * 0.3)
+          const x = cx + (dx * Math.cos(rot) - dy * Math.sin(rot)) * e
+          const y = cy + (dx * Math.sin(rot) + dy * Math.cos(rot)) * e
+          const a = (0.3 + 0.7 * e) * fade
+          if (a <= 0.02) continue
+          px!.globalAlpha = a
+          px!.fillStyle = n.acc ? "#ff4a3d" : INK
+          px!.fillRect(x - n.r, y - n.r, n.r * 2, n.r * 2)
+        }
+        px!.globalAlpha = 1
+        return
+      }
+
+      for (let i = 0; i < nameDots.length; i++) {
+        const n = nameDots[i]
+        let x: number
+        let y: number
+        let a: number
+        if (t < TL.nameOut + n.dl * 0.6) {
+          // Converge from dust onto the letter.
+          const k = clamp((t - TL.nameIn - n.dl) / 0.55)
+          if (k <= 0) continue
+          const e = eo(k)
+          // A slight curve so the dust sweeps in rather than sliding straight.
+          const bend = (1 - e) * n.sw * 40
+          x = n.sx + (n.tx - n.sx) * e + bend
+          y = n.sy + (n.ty - n.sy) * e - bend * 0.4
+          a = 0.25 + 0.75 * e
+        } else {
+          // Lift off into the core with a swirl.
+          const k = clamp((t - TL.nameOut - n.dl * 0.6) / 0.9)
+          const e = ei(k)
+          const dx = n.tx - cx
+          const dy = n.ty - cy
+          const rot = e * (1.4 + n.sw * 0.3)
+          const s = 1 - e
+          x = cx + (dx * Math.cos(rot) - dy * Math.sin(rot)) * s
+          y = cy + (dx * Math.sin(rot) + dy * Math.cos(rot)) * s
+          a = 1 - k * k
+        }
+        if (a <= 0.02) continue
+        px!.globalAlpha = a
+        px!.fillStyle = n.acc ? "#ff4a3d" : INK
+        px!.fillRect(x - n.r, y - n.r, n.r * 2, n.r * 2)
+      }
+      px!.globalAlpha = 1
+    }
+
+    /** A brief, low flash at the burst (kept faint; one pulse only). */
+    function drawFlash(t: number) {
+      if (t < TL.burst || t > TL.burst + 0.35) return
+      const k = (t - TL.burst) / 0.35
+      px!.fillStyle = `rgba(${INKRGB},${0.16 * (1 - k) * (1 - k)})`
+      px!.fillRect(0, 0, W, H)
+    }
+
+    /**
+     * Heading opacity, driven by the timeline: hidden until the particle
+     * name has landed at the end, then crossfaded in on the same spot.
+     * (The rest of the page chrome is held back by the html intro state.)
+     */
+    function drawCopy(t: number) {
+      if (!playingNow && t >= TL.end) {
+        setOp(h1El, 1)
+        return
+      }
+      setOp(h1El, clamp((t - TL.textIn) / (TL.textDone - TL.textIn)))
+    }
+
+    /** Hold the portfolio back while the intro plays; reveal it after. */
+    function setIntroScreen(on: boolean) {
+      const root = document.documentElement
+      if (on) {
+        root.dataset.introState = "playing"
+        window.scrollTo(0, 0)
+        lenisRef.current?.stop()
+      } else {
+        delete root.dataset.introState
+        lenisRef.current?.start()
+      }
+    }
+
     let last = performance.now()
     let animId = 0
     function frame(now: number) {
@@ -612,21 +909,40 @@ export default function Hero() {
       }
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
-      const t = (now - T0) / 1000
+      const t = frozenT ?? (now - T0) / 1000
       drawPhoto(t)
+      drawName(t)
+      drawFlash(t)
       drawSpiral(t, dt)
       drawLogos(t)
       drawOrbit(t, dt)
+      drawCopy(t)
 
       const X = shadowCanvasRef.current
       if (X) {
-        if (t < 5.8) {
+        if (t < TL.burst) {
           X.style.opacity = "0"
-        } else if (t < 7.4) {
-          const u = clamp((t - 5.8) / 1.6)
+        } else if (t < TL.burst + 1.6) {
+          const u = clamp((t - TL.burst) / 1.6)
           X.style.opacity = String(u * 0.5)
         } else {
           X.style.opacity = "0.5"
+        }
+      }
+
+      if (playingNow) {
+        const p = clamp((t - startT) / (TL.end - startT))
+        if (progressRef.current) {
+          progressRef.current.style.transform = `scaleX(${p})`
+        }
+        if (t >= TL.end) {
+          playingNow = false
+          setIntroScreen(false)
+          try {
+            localStorage.setItem(INTRO_SEEN_KEY, "1")
+          } catch {
+            /* storage blocked: the full intro simply plays again next time */
+          }
         }
       }
     }
@@ -694,21 +1010,69 @@ export default function Hero() {
     desktopImg.src = DESKTOP_PHOTO_SRC
     mobileImg.src = MOBILE_PHOTO_SRC
 
-    const resetIntro = () => {
-      T0 = performance.now()
+    /** Play the timeline from `from` seconds (0 = full cut). */
+    const startPlayback = (from: number) => {
+      T0 = performance.now() - from * 1000
+      startT = from
       ang = 0
       oA = 0
       oB = 0
+      charge = 0
+      logos.forEach((L) => (L.hitT = -1))
+      opCache.clear()
+      playingNow = true
+      setIntroScreen(true)
+      if (progressRef.current) progressRef.current.style.transform = "scaleX(0)"
       const X = shadowCanvasRef.current
       if (X) X.style.opacity = "0"
     }
-    replayTriggerRef.current = resetIntro
+    replayTriggerRef.current = () => startPlayback(0)
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    // Dev-only: freeze the timeline at a second to inspect a frame,
+    // e.g. __intro.freeze(1.1); __intro.freeze(null) resumes.
+    if (process.env.NODE_ENV !== "production") {
+      ;(window as unknown as { __intro: object }).__intro = {
+        freeze: (s: number | null) => {
+          frozenT = s
+          startT = 0 // inspect the first-visit cut
+          opCache.clear()
+          if (s === null) startPlayback(0)
+        },
+      }
+    }
+    skipTriggerRef.current = () => {
+      // Jump to the settled end; the frame loop then finishes playback.
+      T0 = performance.now() - TL.end * 1000
+    }
+
+    const reduceMotionNow = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches
+    let seen = false
+    try {
+      seen = !!localStorage.getItem(INTRO_SEEN_KEY)
+    } catch {
+      /* storage blocked: treat as a first visit */
+    }
+
+    if (reduceMotionNow) {
+      // Settled state straight away, no playback.
       T0 -= 20000
       const X = shadowCanvasRef.current
       if (X) X.style.opacity = "0.5"
+    } else {
+      // Return visitors get the short cut: collapse, silence, burst.
+      startPlayback(seen ? TL.shortStart : 0)
     }
+
+    // From here on the timeline owns the heading's visibility. Apply the
+    // first frame's opacities before releasing the CSS pre-hide, so the
+    // heading never flashes in and out (see globals.css, "intro pre-hide").
+    drawCopy((performance.now() - T0) / 1000)
+    hero.dataset.intro = "on"
+    // Tell the pre-paint failsafe in layout.tsx that the intro is live.
+    document.documentElement.classList.add("intro-live")
+    if (reduceMotionNow) setIntroScreen(false)
 
     lw = hero.clientWidth
     lh = hero.clientHeight
@@ -716,7 +1080,10 @@ export default function Hero() {
     animId = requestAnimationFrame(frame)
 
     if (document.fonts) {
-      document.fonts.ready.then(buildLogos)
+      document.fonts.ready.then(() => {
+        buildLogos()
+        buildName() // re-measure with the real display font
+      })
     }
 
     return () => {
@@ -728,13 +1095,15 @@ export default function Hero() {
       hero.removeEventListener("pointerleave", onPointerLeave)
       desktopImg.onload = null
       mobileImg.onload = null
+      // Never leave the page locked behind the intro screen.
+      delete document.documentElement.dataset.introState
     }
   }, [])
 
-  const handleReplay = () => {
-    if (replayTriggerRef.current) {
-      replayTriggerRef.current()
-    }
+  const handleIntroButton = () => {
+    if (document.documentElement.dataset.introState === "playing")
+      skipTriggerRef.current?.()
+    else replayTriggerRef.current?.()
   }
 
   return (
@@ -790,20 +1159,18 @@ export default function Hero() {
       <div className="cap">
         <div>
           <h1>Ziad M. Sheashaa</h1>
-          <p className="sub">
-            Software &amp; AI Engineer building deep learning models and
-            production AI systems.
-          </p>
         </div>
         <motion.button
           className="btn"
           id="replay"
           type="button"
-          onClick={handleReplay}
+          onClick={handleIntroButton}
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.96 }}
         >
-          Replay intro
+          <span className="lbl-skip">Skip intro</span>
+          <span className="lbl-replay">Replay intro</span>
+          <span className="intro-progress" ref={progressRef} aria-hidden="true" />
         </motion.button>
       </div>
 

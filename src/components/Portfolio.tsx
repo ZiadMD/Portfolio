@@ -26,6 +26,11 @@ export default function Portfolio() {
         lerp: 0.09,
       })
       lenisRef.current = lenis
+      // The hero intro is its own screen: no scrolling until it finishes
+      // (Hero restarts Lenis when it clears the intro state).
+      if (document.documentElement.dataset.introState === "playing") {
+        lenis.stop()
+      }
 
       let animId = 0
       function raf(time: number) {

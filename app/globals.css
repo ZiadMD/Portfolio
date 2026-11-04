@@ -583,15 +583,75 @@ em {
   font: 700 clamp(2.2rem, 7vw, 5.4rem) / 0.95 var(--disp);
   letter-spacing: -0.035em;
 }
-.cap .sub {
-  margin: 14px 0 0;
-  max-width: 44ch;
-  font: 500 clamp(1.125rem, 1.5vw, 1.25rem) / 1.4 var(--disp);
-  color: var(--fg);
-}
 .cap .btn {
   flex: none;
   margin-bottom: 4px;
+}
+
+/* Skip / Replay intro: a thin line under the label shows intro progress. */
+#replay {
+  position: relative;
+  overflow: hidden;
+}
+#replay .intro-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--acc);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  display: none;
+}
+/* Label and progress line follow the html intro state, which is set
+   before first paint, so the button is right before React loads. */
+#replay .lbl-skip,
+html[data-intro-state="playing"] #replay .lbl-replay {
+  display: none;
+}
+html[data-intro-state="playing"] #replay .lbl-skip,
+html[data-intro-state="playing"] #replay .intro-progress {
+  display: inline;
+}
+html[data-intro-state="playing"] #replay .intro-progress {
+  display: block;
+}
+
+/* Intro screen. While html[data-intro-state="playing"] is set (from the
+   pre-paint script in layout.tsx until Hero finishes the intro), the
+   intro is the whole page: the portfolio chrome is held back and
+   scrolling is locked. When the state clears, the chrome fades in.
+   The pre-paint script also clears the state after 4s if the app never
+   takes over, so the page can never stay locked. */
+.nav,
+.mqh,
+.hud,
+.cx,
+.hero-particles,
+#ruler,
+#bar {
+  transition: opacity 0.7s ease, visibility 0s linear 0s;
+}
+html[data-intro-state="playing"],
+html[data-intro-state="playing"] body {
+  overflow: hidden;
+}
+html[data-intro-state="playing"] :is(.nav, .mqh, .hud, .cx, .hero-particles, #ruler, #bar) {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: none;
+}
+/* These carry inline opacity from the ruler script, so hide by visibility. */
+html[data-intro-state="playing"] :is(#topPool, #bottomPool, #headingFlow, #headingHits) {
+  visibility: hidden;
+}
+/* The heading is formed by the particle name at the end of the intro.
+   Hide it before the script takes over (Hero then sets data-intro="on"
+   on #hero and drives the heading's opacity itself). */
+html[data-intro-state="playing"] #hero:not([data-intro]) .cap h1 {
+  opacity: 0;
 }
 
 .btn {
