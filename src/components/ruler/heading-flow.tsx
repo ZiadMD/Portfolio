@@ -375,11 +375,19 @@ export default function HeadingFlow({ sections, geom }: HeadingFlowProps) {
         }
 
         if (refs.hit && isFinite(minX)) {
-          refs.hit.style.left = `${minX - 2}px`
-          refs.hit.style.top = `${minY - 2}px`
-          refs.hit.style.width = `${maxX - minX + 4}px`
-          refs.hit.style.height = `${maxY - minY + 4}px`
-          refs.hit.style.pointerEvents = maxAlpha > 0.05 ? "auto" : "none"
+          const isVisible = (onRail > 0.05 || (wi === 0 && maxAlpha > 0.5)) && maxAlpha > 0.15
+          refs.hit.style.display = isVisible ? "block" : "none"
+          if (isVisible) {
+            const w = Math.max(28, maxX - minX + 6)
+            const h = Math.max(28, maxY - minY + 6)
+            const cx = (minX + maxX) / 2
+            const cy = (minY + maxY) / 2
+            refs.hit.style.left = `${cx - w / 2}px`
+            refs.hit.style.top = `${cy - h / 2}px`
+            refs.hit.style.width = `${w}px`
+            refs.hit.style.height = `${h}px`
+            refs.hit.style.pointerEvents = "auto"
+          }
         }
       }
 

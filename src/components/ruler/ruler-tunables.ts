@@ -1,4 +1,4 @@
-// Tunables for Ruler layout, motion, and look — 1:1 with artcraft-services
+// Tunables for Ruler layout, motion, and look: 1:1 with artcraft-services
 
 export interface RulerLayout {
   side: number // 0=left, 1=right
@@ -96,7 +96,7 @@ const DEFAULT_MOTION: RulerMotion = {
 const DEFAULT_LOOK: RulerLook = {
   minorAlpha: 0.4,
   majorAlpha: 0.8,
-  labelAlpha: 0.5,
+  labelAlpha: 0.6,
   minorLen: 10,
   majorLen: 20,
   ghostAlpha: 1.0,

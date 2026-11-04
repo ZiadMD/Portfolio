@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Lenis from "lenis"
+import { MotionConfig } from "motion/react"
 import { lenisRef } from "../lib/lenis-ref"
 import Navbar from "./layout/Navbar"
 import ScrollRuler from "./layout/ScrollRuler"
@@ -12,7 +13,8 @@ import Work from "./sections/Work"
 import Contact from "./sections/Contact"
 
 export default function Portfolio() {
-  const [activeSection, setActiveSection] = useState<string>("hero")
+  // Active-link highlighting is driven by the ruler (heading-flow.tsx).
+  const [activeSection] = useState<string>("hero")
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia(
@@ -51,16 +53,24 @@ export default function Portfolio() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)]">
-      <Navbar activeSection={activeSection} onNavigate={handleNavigate} />
-      <ScrollRuler />
-      <main>
-        <Hero />
-        <About />
-        <Experience />
-        <Work lenisRef={lenisRef} />
-      </main>
-      <Contact />
-    </div>
+    // reducedMotion="user": Motion drops transform animations when the
+    // visitor has asked their system for reduced motion.
+    <MotionConfig reducedMotion="user">
+      <div className="min-h-dvh bg-[var(--bg)] text-[var(--fg)]">
+        <Navbar activeSection={activeSection} onNavigate={handleNavigate} />
+        <ScrollRuler />
+        <main id="main">
+          <Hero />
+          <About />
+          <Experience />
+          <Work lenisRef={lenisRef} />
+          <Contact />
+        </main>
+        <footer>
+          <span>© 2026 Ziad M. Sheashaa</span>
+          <span>Built with canvas and a lot of particles.</span>
+        </footer>
+      </div>
+    </MotionConfig>
   )
 }

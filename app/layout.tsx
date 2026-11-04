@@ -40,7 +40,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: "Ziad M. Sheashaa — Software & AI Engineer",
+    default: "Ziad M. Sheashaa | Software & AI Engineer",
     template: "%s | Ziad M. Sheashaa",
   },
   description:
@@ -98,8 +98,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: BASE_URL,
-    siteName: "Ziad M. Sheashaa — Software & AI Engineer",
-    title: "Ziad M. Sheashaa — Software & AI Engineer",
+    siteName: "Ziad M. Sheashaa | Software & AI Engineer",
+    title: "Ziad M. Sheashaa | Software & AI Engineer",
     description:
       "Building at the intersection of code and intelligence. Machine Learning, Computer Vision, Agentic AI, and Full-Stack Systems.",
     images: [
@@ -107,20 +107,20 @@ export const metadata: Metadata = {
         url: "/images/desktop-profile-with-background.jpg",
         width: 1200,
         height: 630,
-        alt: "Ziad M. Sheashaa — Software & AI Engineer Portfolio",
+        alt: "Ziad M. Sheashaa | Software & AI Engineer Portfolio",
         type: "image/jpeg",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ziad M. Sheashaa — Software & AI Engineer",
+    title: "Ziad M. Sheashaa | Software & AI Engineer",
     description:
       "Building at the intersection of code and intelligence. Machine Learning, Computer Vision, Agentic AI, and Full-Stack Systems.",
     images: [
       {
         url: "/images/desktop-profile-with-background.jpg",
-        alt: "Ziad M. Sheashaa — Software & AI Engineer",
+        alt: "Ziad M. Sheashaa | Software & AI Engineer",
       },
     ],
     creator: "@ZiadMD",
@@ -208,7 +208,7 @@ const jsonLd = {
       "@type": "WebSite",
       "@id": `${BASE_URL}/#website`,
       url: BASE_URL,
-      name: "Ziad M. Sheashaa — Portfolio",
+      name: "Ziad M. Sheashaa | Portfolio",
       description:
         "Official engineering portfolio of Ziad M. Sheashaa, Software & AI Engineer.",
       publisher: {
@@ -219,7 +219,7 @@ const jsonLd = {
       "@type": "ProfilePage",
       "@id": `${BASE_URL}/#webpage`,
       url: BASE_URL,
-      name: "Ziad M. Sheashaa — Software & AI Engineer Portfolio",
+      name: "Ziad M. Sheashaa | Software & AI Engineer Portfolio",
       isPartOf: {
         "@id": `${BASE_URL}/#website`,
       },
@@ -242,6 +242,7 @@ const jsonLd = {
               "AI-powered screening and psychological assessment platform for schools with early behavioral detection.",
             applicationCategory: "HealthApplication",
             operatingSystem: "Web",
+            url: "https://bassira.org",
             codeRepository: "https://github.com/aboellil0/Basira",
           },
         },
@@ -252,7 +253,7 @@ const jsonLd = {
             "@type": "SoftwareApplication",
             name: "Nexcut Studio",
             description:
-              "High-performance C++20 multi-track desktop video editor with an on-device AI service, FFmpeg decoding, and MCP tools.",
+              "Agentic desktop video editor with an on-device AI service, timeline architecture, MCP-compliant tools, and local model inference.",
             applicationCategory: "MultimediaApplication",
             operatingSystem: "Desktop",
             codeRepository: "https://github.com/Mohanadmomen/Nxtcut",
@@ -263,7 +264,7 @@ const jsonLd = {
           position: 3,
           item: {
             "@type": "SoftwareApplication",
-            name: "NASA 2025 — TERRA",
+            name: "NASA 2025: TERRA",
             description:
               "Educational web platform using Scikit-learn ML models to predict climate patterns from NASA data, with Gemini API chatbot.",
             url: "https://spatuim.vercel.app/",
@@ -309,6 +310,40 @@ const jsonLd = {
           position: 7,
           item: {
             "@type": "SoftwareApplication",
+            name: "Safespace",
+            description:
+              "Edge road-safety system: a Raspberry Pi node with an AI camera running accident detection, and a containerized YOLOv8 central service for accident inference and license-plate extraction.",
+            codeRepository: "https://github.com/ZiadMD/Safespace_node",
+          },
+        },
+        {
+          "@type": "ListItem",
+          position: 8,
+          item: {
+            "@type": "SoftwareApplication",
+            name: "ScreenSeekeR",
+            description:
+              "Vision-based Windows desktop automation using cascaded visual grounding to locate UI elements from natural-language descriptions.",
+            codeRepository:
+              "https://github.com/ZiadMD/ScreenSeekeR-Desktop-Automation",
+          },
+        },
+        {
+          "@type": "ListItem",
+          position: 9,
+          item: {
+            "@type": "SoftwareApplication",
+            name: "Computer Vision x Arduino",
+            description:
+              "MediaPipe face and hand tracking that sends labels over serial to an Arduino driving LED patterns.",
+            codeRepository: "https://github.com/ZiadMD/Computer-Vision-x-Arduino",
+          },
+        },
+        {
+          "@type": "ListItem",
+          position: 10,
+          item: {
+            "@type": "SoftwareApplication",
             name: "Thaj",
             description:
               "Platform for student activities & organizations with flexible roles, task review, scoring, and automated AI agents.",
@@ -316,7 +351,7 @@ const jsonLd = {
         },
         {
           "@type": "ListItem",
-          position: 8,
+          position: 11,
           item: {
             "@type": "SoftwareApplication",
             name: "Fitness, Nutrition & PT",
@@ -346,7 +381,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{localStorage.removeItem('zs-theme');document.documentElement.dataset.theme='dark';}catch(e){}})();`,
+            __html: `(function(){document.documentElement.classList.add('js');try{localStorage.removeItem('zs-theme');document.documentElement.dataset.theme='dark';}catch(e){}})();`,
           }}
         />
         <script

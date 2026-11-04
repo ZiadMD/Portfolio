@@ -1,19 +1,7 @@
 "use client"
 
-// Generate fallback arts for projects without explicit local image
-
-// Section reveals
-
-// Peek cursor tracking
-
-// Modal open/close body scroll locking
-
-// Keyboard Escape listener for modal
-
-// Draggable window title bar
-/* Floating Peek Cursor Preview */ /* Window Dialog Modal */ /* Working on now subsection */ /* Diagonal Coming Soon ribbon */ /* Floating Peek Cursor Preview */ /* Window Dialog Modal */
-
-import { useEffect, useRef, useState, useMemo } from "react"
+import { useEffect, useRef, useState, useMemo, useCallback } from "react"
+import { motion, AnimatePresence, useDragControls } from "motion/react"
 import Lenis from "lenis"
 import {
   PROJECTS,
@@ -21,88 +9,163 @@ import {
   WORKING_ON_NOW_PROJECTS,
 } from "../../data/portfolioData"
 import { Project } from "../../types/portfolio"
+import { useReveal } from "../../lib/use-reveal"
+import SplitHeading from "../ui/SplitHeading"
 
-function generateProjectArt(title: string, hue: number): string {
+/**
+ * Title card for a project that has no screenshot yet: drawn from the
+ * project's own name, category and stack in the site's palette. The
+ * initial is sampled into dots, the same way the hero builds its logos.
+ * `withText: false` draws only the mark, for thumbnails that sit above
+ * the title anyway.
+ */
+function drawTitleCard(p: Project, withText = true): string {
   if (typeof document === "undefined") return ""
+  const W = 1280
+  const H = 800
   const c = document.createElement("canvas")
-  c.width = 640
-  c.height = 440
+  c.width = W
+  c.height = H
   const g = c.getContext("2d")
   if (!g) return ""
-  const q = g.createLinearGradient(0, 0, 640, 440)
-  q.addColorStop(0, `hsl(${hue} 55% 12%)`)
-  q.addColorStop(1, `hsl(${hue + 40} 65% 30%)`)
-  g.fillStyle = q
-  g.fillRect(0, 0, 640, 440)
-  g.fillStyle = `hsla(${hue + 20}, 90%, 80%, 0.4)`
-  for (let y = 14; y < 440; y += 14) {
-    for (let x = 10; x < 640; x += 14) {
-      const v = (Math.sin(x * 0.02 + hue) + Math.cos(y * 0.03) + 2) / 4
-      g.beginPath()
-      g.arc(x, y, v * 4.5, 0, 6.283)
-      g.fill()
+
+  const css = getComputedStyle(document.documentElement)
+  const v = (name: string, fb: string) => css.getPropertyValue(name).trim() || fb
+  const panel = v("--panel", "#101012")
+  const fg = v("--fg", "#ecebe7")
+  const mut = v("--mut", "#8a8b8f")
+  const acc = v("--acc", "#ff4a3d")
+  const disp = v("--font-disp", "sans-serif")
+  const mono = v("--font-mono", "monospace")
+
+  g.fillStyle = panel
+  g.fillRect(0, 0, W, H)
+
+  const m = document.createElement("canvas")
+  const S = 120
+  m.width = m.height = S
+  const mg = m.getContext("2d")
+  if (mg) {
+    mg.fillStyle = "#fff"
+    mg.textAlign = "center"
+    mg.textBaseline = "middle"
+    mg.font = `700 ${S * 0.95}px ${disp}`
+    mg.fillText(p.title.charAt(0).toUpperCase(), S / 2, S * 0.54)
+    const d = mg.getImageData(0, 0, S, S).data
+    const cell = 6.2
+    const ox = withText ? W - S * cell - 40 : (W - S * cell) / 2
+    const oy = (H - S * cell) / 2 - (withText ? 40 : 0)
+    g.fillStyle = acc
+    for (let y = 0; y < S; y += 2) {
+      for (let x = 0; x < S; x += 2) {
+        if (d[(y * S + x) * 4 + 3] > 128) {
+          g.beginPath()
+          g.arc(ox + x * cell, oy + y * cell, 4.2, 0, Math.PI * 2)
+          g.fill()
+        }
+      }
     }
   }
-  g.fillStyle = "#fff"
-  g.font = "700 38px sans-serif"
-  g.fillText(title, 28, 404)
-  return c.toDataURL("image/jpeg", 0.8)
+
+  if (!withText) return c.toDataURL("image/png")
+
+  g.textBaseline = "alphabetic"
+  g.fillStyle = acc
+  g.font = `400 26px ${mono}`
+  g.fillText(p.category.toUpperCase(), 64, 96)
+
+  g.fillStyle = fg
+  let size = 92
+  g.font = `700 ${size}px ${disp}`
+  while (g.measureText(p.title).width > W * 0.62 && size > 48) {
+    size -= 4
+    g.font = `700 ${size}px ${disp}`
+  }
+  g.fillText(p.title, 64, H - 150)
+
+  g.fillStyle = mut
+  g.font = `400 26px ${mono}`
+  g.fillText(p.tech.slice(0, 4).join("  ·  "), 64, H - 84)
+
+  return c.toDataURL("image/png")
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
+    </svg>
+  )
+}
+
+function MaxIcon({ on }: { on: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      {on ? (
+        <path d="M5.5 2.5h8v8M2.5 5.5h8v8h-8z" />
+      ) : (
+        <path d="M2.5 2.5h11v11h-11z" />
+      )}
+    </svg>
+  )
 }
 
 interface WorkProps {
   lenisRef: React.MutableRefObject<Lenis | null>
 }
 
+type OriginPoint = { x: number; y: number; width: number }
+
+const SEL = 3
+
 export default function Work({ lenisRef }: WorkProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const peekRef = useRef<HTMLDivElement>(null)
   const stripRef = useRef<HTMLDivElement>(null)
+  const winRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const openerRef = useRef<HTMLElement | null>(null)
+  const dragControls = useDragControls()
 
   const [expanded, setExpanded] = useState(false)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [origin, setOrigin] = useState<{
+    x: number
+    y: number
+    scale: number
+  } | null>(null)
   const [isMaximized, setIsMaximized] = useState(false)
-  const [projectImages, setProjectImages] = useState<string[]>([])
+  const [art, setArt] = useState<Record<string, string>>({})
 
-  const SEL = 6
   const initialProjects = useMemo(() => FEATURED_PROJECTS.slice(0, SEL), [])
   const extraProjects = useMemo(() => FEATURED_PROJECTS.slice(SEL), [])
+  const imgFor = (p: Project) => p.img || art[p.id] || ""
+  const thumbFor = (p: Project) => p.img || art[`${p.id}-plain`] || ""
+
+  useReveal(sectionRef)
+
+  // Title cards need the page fonts, so draw them once fonts are ready.
   useEffect(() => {
-    const images = PROJECTS.map(
-      (p) => p.img || generateProjectArt(p.title, p.hue),
-    )
-    setProjectImages(images)
+    let alive = true
+    const build = () => {
+      if (!alive) return
+      const next: Record<string, string> = {}
+      PROJECTS.forEach((p) => {
+        if (p.img) return
+        next[p.id] = drawTitleCard(p)
+        if (p.isWorkingOnNow) next[`${p.id}-plain`] = drawTitleCard(p, false)
+      })
+      setArt(next)
+    }
+    if (document.fonts) document.fonts.ready.then(build)
+    else build()
+    return () => {
+      alive = false
+    }
   }, [])
-  useEffect(() => {
-    const section = sectionRef.current
-    if (!section) return
 
-    const headings = section.querySelectorAll<HTMLElement>("h2, .big")
-    headings.forEach((h) => {
-      if (h.dataset.wrapped) return
-      h.dataset.wrapped = "true"
-      let i = 0
-      h.innerHTML = h.innerHTML.replace(
-        /(<[^>]+>)|([^\s<]+)/g,
-        (match, g, w) =>
-          g ? g : `<span class="w"><i style="--i:${i++}">${w}</i></span>`,
-      )
-    })
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          e.target.classList.toggle("in", e.isIntersecting)
-        })
-      },
-      { threshold: 0.15 },
-    )
-
-    const revealEls = section.querySelectorAll<HTMLElement>(".rv, h2, .big")
-    revealEls.forEach((el) => io.observe(el))
-
-    return () => io.disconnect()
-  }, [])
+  // Floating preview that follows a mouse pointer over the project list.
   useEffect(() => {
     const list = listRef.current
     const pk = peekRef.current
@@ -144,16 +207,17 @@ export default function Work({ lenisRef }: WorkProps) {
       st = i >= 0 ? 1 : 0
       if (i < 0) return
 
+      const y = `translateY(${-i * (100 / FEATURED_PROJECTS.length)}%)`
       if (was < 0) {
         qx = tx
         qy = ty
         ss = 0
         strip!.style.transition = "none"
-        strip!.style.transform = `translateY(${-i * (100 / PROJECTS.length)}%)`
+        strip!.style.transform = y
         void strip!.offsetWidth
         strip!.style.transition = ""
       } else {
-        strip!.style.transform = `translateY(${-i * (100 / PROJECTS.length)}%)`
+        strip!.style.transform = y
       }
 
       if (!run) {
@@ -171,143 +235,182 @@ export default function Work({ lenisRef }: WorkProps) {
     }
 
     const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse") return
       tx = e.clientX
       ty = e.clientY
       pick(rowAt(tx, ty))
     }
-
     const onPointerLeave = () => pick(-1)
-    const onScroll = () => {
-      if (act >= 0) pick(rowAt(tx, ty))
-    }
 
     list.addEventListener("pointermove", onPointerMove)
     list.addEventListener("pointerleave", onPointerLeave)
-    window.addEventListener("scroll", onScroll, { passive: true })
 
     return () => {
       cancelAnimationFrame(animId)
       list.removeEventListener("pointermove", onPointerMove)
       list.removeEventListener("pointerleave", onPointerLeave)
-      window.removeEventListener("scroll", onScroll)
     }
   }, [])
-  const openModal = (project: Project) => {
+
+  const openModal = (
+    project: Project,
+    opener: HTMLElement | null,
+    originPoint?: OriginPoint,
+  ) => {
+    const winW = window.innerWidth
+    const winH = window.innerHeight
+    const modalW = Math.min(900, winW * 0.94)
+
+    if (originPoint) {
+      const startScale = Math.max(
+        0.18,
+        Math.min(0.85, originPoint.width / modalW),
+      )
+      setOrigin({
+        x: originPoint.x - winW / 2,
+        y: originPoint.y - winH / 2,
+        scale: startScale,
+      })
+    } else {
+      setOrigin({ x: 0, y: 30, scale: 0.95 })
+    }
+
+    if (peekRef.current) peekRef.current.style.visibility = "hidden"
+
+    openerRef.current = opener
     setSelectedProject(project)
     setIsMaximized(false)
     document.body.style.overflow = "hidden"
-    if (lenisRef.current) {
-      lenisRef.current.stop()
-    }
+    lenisRef.current?.stop()
   }
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setSelectedProject(null)
     setIsMaximized(false)
+    setOrigin(null)
     document.body.style.overflow = ""
-    if (lenisRef.current) {
-      lenisRef.current.start()
-    }
-  }
+    lenisRef.current?.start()
+    openerRef.current?.focus()
+  }, [lenisRef])
+
+  // Dialog: focus the close button on open, keep Tab inside, Escape closes.
   useEffect(() => {
+    if (!selectedProject) return
+    closeRef.current?.focus()
+
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && selectedProject) {
+      if (e.key === "Escape") {
         closeModal()
+        return
+      }
+      if (e.key !== "Tab" || !winRef.current) return
+      const items = winRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )
+      if (!items.length) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
       }
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [selectedProject])
-  const winRef = useRef<HTMLDivElement>(null)
-  const [dragOffset, setDragOffset] = useState<[number, number] | null>(null)
+  }, [selectedProject, closeModal])
 
-  const onTitleBarPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (
-      (e.target as HTMLElement).closest("button") ||
-      isMaximized ||
-      !winRef.current
-    )
-      return
-    const r = winRef.current.getBoundingClientRect()
-    setDragOffset([e.clientX - r.left, e.clientY - r.top])
-    winRef.current.style.transform = "none"
-    winRef.current.style.left = `${r.left}px`
-    winRef.current.style.top = `${r.top}px`
+  const centreOf = (el: Element, maxW?: number): OriginPoint => {
+    const r = el.getBoundingClientRect()
+    return {
+      x: r.left + r.width / 2,
+      y: r.top + r.height / 2,
+      width: maxW ? Math.min(maxW, r.width) : r.width,
+    }
   }
 
-  useEffect(() => {
-    if (!dragOffset) return
+  const renderProjectRow = (project: Project, index: number) => (
+    <button
+      key={project.id}
+      type="button"
+      className="row"
+      data-i={index}
+      aria-haspopup="dialog"
+      onClick={(e) => {
+        const pk = peekRef.current
+        const from =
+          pk && pk.style.visibility !== "hidden"
+            ? centreOf(pk)
+            : centreOf(e.currentTarget, 400)
+        openModal(project, e.currentTarget, from)
+      }}
+    >
+      <span>
+        <b>{project.title}</b>
+        <small>{project.subtitle}</small>
+      </span>
+      <span className="g">{project.tech.slice(0, 3).join(" · ")}</span>
+    </button>
+  )
 
-    const clamp = (v: number, a: number, b: number) =>
-      Math.min(b, Math.max(a, v))
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!winRef.current) return
-      const x = clamp(e.clientX - dragOffset[0], 0, window.innerWidth - 80)
-      const y = clamp(e.clientY - dragOffset[1], 0, window.innerHeight - 40)
-      winRef.current.style.left = `${x}px`
-      winRef.current.style.top = `${y}px`
-    }
-
-    const onPointerUp = () => setDragOffset(null)
-
-    window.addEventListener("pointermove", onPointerMove)
-    window.addEventListener("pointerup", onPointerUp)
-
-    return () => {
-      window.removeEventListener("pointermove", onPointerMove)
-      window.removeEventListener("pointerup", onPointerUp)
-    }
-  }, [dragOffset])
-
-  const renderProjectRow = (project: Project, index: number) => {
-    const imgSrc = projectImages[index] || project.img
-    return (
-      <a
-        key={project.id}
-        className="row"
-        href="#"
-        data-i={index}
-        onClick={(e) => {
-          e.preventDefault()
-          openModal(project)
-        }}
-      >
-        <span>
-          <b>{project.title}</b>
-          <small>{project.subtitle}</small>
-        </span>
-        <span className="g">{project.tech.slice(0, 3).join(" · ")}</span>
-        {imgSrc && (
-          <img
-            className="m"
-            src={imgSrc}
-            alt={project.title}
-            loading="lazy"
-            decoding="async"
-          />
-        )}
-      </a>
-    )
-  }
+  const titleId = "win-title"
 
   return (
     <section className="s" id="work" data-l="~/work" ref={sectionRef}>
-      <p className="lab rv">Selected work</p>
-      <h2>
-        Featured <em>projects</em>.
-      </h2>
+      <SplitHeading parts={["Featured projects."]} />
 
       <div id="list" className="rv" ref={listRef}>
         {initialProjects.map((p, idx) => renderProjectRow(p, idx))}
 
-        {extraProjects.length > 0 && (
-          <div id="more" className={expanded ? "open" : ""}>
-            <div id="moreIn">
-              {extraProjects.map((p, idx) => renderProjectRow(p, SEL + idx))}
-            </div>
-          </div>
-        )}
+        <AnimatePresence initial={false}>
+          {expanded && extraProjects.length > 0 && (
+            <motion.div
+              id="more"
+              className="open"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{
+                height: "auto",
+                opacity: 1,
+                transition: {
+                  height: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
+                  opacity: { duration: 0.3, delay: 0.05 },
+                },
+              }}
+              exit={{
+                height: 0,
+                opacity: 0,
+                transition: {
+                  height: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+                  opacity: { duration: 0.2 },
+                },
+              }}
+              style={{ overflow: "hidden" }}
+            >
+              <div id="moreIn">
+                {extraProjects.map((p, idx) => (
+                  <motion.div
+                    key={p.id}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                      transition: {
+                        duration: 0.35,
+                        delay: idx * 0.06,
+                        ease: [0.16, 1, 0.3, 1],
+                      },
+                    }}
+                    exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
+                  >
+                    {renderProjectRow(p, SEL + idx)}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {extraProjects.length > 0 && (
@@ -316,219 +419,293 @@ export default function Work({ lenisRef }: WorkProps) {
             Showing {expanded ? FEATURED_PROJECTS.length : SEL} of{" "}
             {FEATURED_PROJECTS.length}
           </span>
-          <button
+          <motion.button
             className="btn"
             id="seeMore"
             type="button"
+            aria-expanded={expanded}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={() => setExpanded(!expanded)}
           >
             {expanded
-              ? "See fewer −"
-              : `See more projects (${FEATURED_PROJECTS.length - SEL}) +`}
-          </button>
+              ? "See fewer"
+              : `See more projects (${FEATURED_PROJECTS.length - SEL})`}
+          </motion.button>
         </div>
       )}
 
-      {}
       <div id="now" className="now-section rv">
         <div className="now-header">
-          <div className="now-badge">
-            <span className="pulse-dot" aria-hidden="true" />
-            <span>Active Pipeline</span>
-          </div>
-          <h3 className="now-title">
-            Working on <em>now</em>.
-          </h3>
+          <h3 className="now-title">Working on now</h3>
           <p className="now-desc">
-            Projects currently in active development — from hackathon prototypes
-            to production builds.
+            Early-stage architectures and live client builds currently under
+            active development.
           </p>
         </div>
 
         <div className="now-grid">
-          {WORKING_ON_NOW_PROJECTS.map((project, idx) => {
-            const globalIdx = FEATURED_PROJECTS.length + idx
-            const imgSrc = projectImages[globalIdx] || project.img
+          {WORKING_ON_NOW_PROJECTS.map((project) => {
+            const imgSrc = thumbFor(project)
+            const open = (opener: HTMLElement, card: HTMLElement) =>
+              openModal(
+                project,
+                opener,
+                centreOf(card.querySelector(".now-card-thumb") || card),
+              )
             return (
-              <div
+              <motion.article
                 key={project.id}
                 className="now-card"
-                role="button"
-                tabIndex={0}
-                onClick={() => openModal(project)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    openModal(project)
-                  }
+                whileHover={{
+                  y: -5,
+                  transition: { duration: 0.2, ease: "easeOut" },
+                }}
+                onClick={(e) => {
+                  // Mouse convenience: the whole card opens the details.
+                  if ((e.target as HTMLElement).closest("a, button")) return
+                  const card = e.currentTarget
+                  const btn =
+                    card.querySelector<HTMLElement>(".now-card-action") || card
+                  open(btn, card)
                 }}
               >
-                {}
-                <div className="diagonal-ribbon-wrapper" aria-hidden="true">
-                  <div className="diagonal-ribbon">Coming Soon</div>
-                </div>
-
                 <div className="now-card-thumb">
                   {imgSrc && (
-                    <img
-                      src={imgSrc}
-                      alt={project.title}
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <img src={imgSrc} alt="" loading="lazy" decoding="async" />
                   )}
                   <div className="now-card-status">
                     <span className="pulse-dot" aria-hidden="true" />
-                    <span>In Development</span>
+                    <span>In development</span>
                   </div>
                 </div>
 
                 <div className="now-card-body">
-                  <div className="now-card-meta">
-                    <span className="now-card-cat">{project.category}</span>
-                    {project.note && (
-                      <span className="now-card-note">{project.note}</span>
-                    )}
-                  </div>
+                  <span className="now-card-cat">{project.category}</span>
                   <h4 className="now-card-title">{project.title}</h4>
                   <p className="now-card-sub">{project.subtitle}</p>
                   <p className="now-card-desc">{project.description}</p>
+                  {project.note && (
+                    <p className="now-card-note">{project.note}</p>
+                  )}
                   <div className="now-card-tags">
-                    {project.tech.map((t, tIdx) => (
-                      <span key={tIdx}>{t}</span>
+                    {project.tech.map((t) => (
+                      <span key={t}>{t}</span>
                     ))}
                   </div>
                   <div className="now-card-footer">
-                    <span className="now-card-action">View details ↗</span>
+                    <button
+                      type="button"
+                      className="now-card-action"
+                      aria-haspopup="dialog"
+                      onClick={(e) =>
+                        open(
+                          e.currentTarget,
+                          e.currentTarget.closest(".now-card") as HTMLElement,
+                        )
+                      }
+                    >
+                      View details
+                      <span className="sr-only"> about {project.title}</span>
+                    </button>
                     {project.githubUrl && (
                       <a
                         href={project.githubUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="now-card-gh"
-                        onClick={(e) => e.stopPropagation()}
                       >
-                        GitHub ↗
+                        GitHub
+                        <span className="sr-only">
+                          {" "}
+                          repository for {project.title} (opens in new tab)
+                        </span>
                       </a>
                     )}
                   </div>
                 </div>
-              </div>
+              </motion.article>
             )
           })}
         </div>
       </div>
 
-      {}
       <div id="peek" ref={peekRef} aria-hidden="true">
         <div id="strip" ref={stripRef}>
-          {projectImages.map((src, idx) => (
-            <img key={idx} src={src} alt="" />
+          {FEATURED_PROJECTS.map((p) => (
+            <img key={p.id} src={imgFor(p) || undefined} alt="" />
           ))}
         </div>
       </div>
 
-      {}
-      {selectedProject && (
-        <>
-          <div id="scrim" onClick={closeModal} />
-          <div
-            id="win"
-            ref={winRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Project details"
-            className={`on ${isMaximized ? "max" : ""}`}
-          >
-            <div id="wbar" onPointerDown={onTitleBarPointerDown}>
-              <span id="wt">
-                ~/work/
-                {selectedProject.title
-                  .toLowerCase()
-                  .replace(/[^a-z0-9]+/g, "-")
-                  .replace(/^-|-$/g, "")}
-              </span>
-              <span>
-                <button
-                  id="wmax"
-                  aria-label="Maximize"
-                  type="button"
-                  onClick={() => setIsMaximized(!isMaximized)}
+      <AnimatePresence>
+        {selectedProject && (
+          <>
+            <motion.div
+              id="scrim"
+              key="scrim"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              onClick={closeModal}
+            />
+            <div className="modal-overlay" onClick={closeModal}>
+              <motion.div
+                id="win"
+                key="win"
+                ref={winRef}
+                layout
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                className={`on ${isMaximized ? "max" : ""}`}
+                initial={
+                  origin
+                    ? {
+                        x: origin.x,
+                        y: origin.y,
+                        scale: origin.scale,
+                        opacity: 0.85,
+                      }
+                    : { x: 0, y: 24, scale: 0.95, opacity: 0 }
+                }
+                animate={{
+                  x: 0,
+                  y: 0,
+                  scale: 1,
+                  opacity: 1,
+                  transition: {
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 26,
+                    mass: 0.8,
+                  },
+                }}
+                exit={
+                  origin
+                    ? {
+                        x: origin.x,
+                        y: origin.y,
+                        scale: origin.scale,
+                        opacity: 0,
+                        transition: {
+                          duration: 0.24,
+                          ease: [0.16, 1, 0.3, 1],
+                        },
+                      }
+                    : {
+                        opacity: 0,
+                        scale: 0.96,
+                        transition: { duration: 0.2 },
+                      }
+                }
+                drag={!isMaximized}
+                dragControls={dragControls}
+                dragListener={false}
+                dragMomentum={false}
+                dragElastic={0.06}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  id="wbar"
+                  onPointerDown={(e) => {
+                    // Drag by the title bar on desktop sizes only; on a phone
+                    // the window already fills the width.
+                    if (
+                      (e.target as HTMLElement).closest("button") ||
+                      isMaximized ||
+                      window.innerWidth <= 700
+                    )
+                      return
+                    dragControls.start(e)
+                  }}
                 >
-                  ▢
-                </button>
-                <button
-                  id="wx"
-                  aria-label="Close"
-                  type="button"
-                  onClick={closeModal}
-                >
-                  ✕
-                </button>
-              </span>
-            </div>
-
-            <div id="wbody">
-              <div className="wimg-wrap">
-                <img
-                  src={
-                    projectImages[
-                      PROJECTS.findIndex((p) => p.id === selectedProject.id)
-                    ] || selectedProject.img
-                  }
-                  alt={selectedProject.title}
-                />
-                {selectedProject.comingSoon && (
-                  <div className="diagonal-ribbon-wrapper" aria-hidden="true">
-                    <div className="diagonal-ribbon">Coming Soon</div>
-                  </div>
-                )}
-              </div>
-              <div>
-                {selectedProject.comingSoon && (
-                  <div className="now-badge" style={{ marginBottom: 12 }}>
-                    <span className="pulse-dot" aria-hidden="true" />
-                    <span>Working on now · Coming Soon</span>
-                  </div>
-                )}
-                <small>{selectedProject.category}</small>
-                <h3>{selectedProject.title}</h3>
-                <p>{selectedProject.description}</p>
-                {selectedProject.note && (
-                  <p className="nt">{selectedProject.note}</p>
-                )}
-
-                <div className="tg">
-                  {selectedProject.tech.map((t, idx) => (
-                    <span key={idx}>{t}</span>
-                  ))}
+                  <span id="wt" aria-hidden="true">
+                    ~/work/
+                    {selectedProject.title
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-|-$/g, "")}
+                  </span>
+                  <span>
+                    <button
+                      id="wmax"
+                      aria-label={isMaximized ? "Restore size" : "Maximize"}
+                      aria-pressed={isMaximized}
+                      type="button"
+                      onClick={() => setIsMaximized(!isMaximized)}
+                    >
+                      <MaxIcon on={isMaximized} />
+                    </button>
+                    <button
+                      id="wx"
+                      ref={closeRef}
+                      aria-label="Close project details"
+                      type="button"
+                      onClick={closeModal}
+                    >
+                      <CloseIcon />
+                    </button>
+                  </span>
                 </div>
 
-                <div className="lk">
-                  {selectedProject.demoUrl && (
-                    <a
-                      href={selectedProject.demoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Live ↗
-                    </a>
-                  )}
-                  {selectedProject.githubUrl && (
-                    <a
-                      href={selectedProject.githubUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      GitHub ↗
-                    </a>
-                  )}
+                <div id="wbody">
+                  <div className="wimg-wrap">
+                    {imgFor(selectedProject) && (
+                      <img src={imgFor(selectedProject)} alt="" />
+                    )}
+                  </div>
+                  <motion.div
+                    className="wbody-info"
+                    initial={{ opacity: 0, x: 12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 8 }}
+                    transition={{ duration: 0.22, delay: 0.08 }}
+                  >
+                    <small>
+                      {selectedProject.category}
+                      {selectedProject.comingSoon ? " · In development" : ""}
+                    </small>
+                    <h3 id={titleId}>{selectedProject.title}</h3>
+                    <p>{selectedProject.description}</p>
+                    {selectedProject.note && (
+                      <p className="nt">{selectedProject.note}</p>
+                    )}
+
+                    <div className="tg">
+                      {selectedProject.tech.map((t) => (
+                        <span key={t}>{t}</span>
+                      ))}
+                    </div>
+
+                    <div className="lk">
+                      {selectedProject.demoUrl && (
+                        <a
+                          href={selectedProject.demoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Live site
+                        </a>
+                      )}
+                      {selectedProject.githubUrl && (
+                        <a
+                          href={selectedProject.githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          GitHub
+                        </a>
+                      )}
+                    </div>
+                  </motion.div>
                 </div>
-              </div>
+              </motion.div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </AnimatePresence>
     </section>
   )
 }

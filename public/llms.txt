@@ -1,57 +1,29 @@
-# Ziad M. Sheashaa — Software & AI Engineer
+# Ziad M. Sheashaa: Software & AI Engineer
 
-> Portfolio and profile of Ziad M. Sheashaa, a Software & AI Engineer building at the intersection of machine learning, computer vision, robotics, and full-stack software development.
+> Portfolio and profile of Ziad M. Sheashaa, a Software & AI Systems Engineer architecting machine learning models, computer vision pipelines, robotics, and full-stack software development.
 
 - Website: https://ziad-sheashaa.me
 - GitHub: https://github.com/ZiadMD
-- LinkedIn: https://www.linkedin.com/in/ziadmsheashaa
-- Email: ziadmsheashaa@gmail.com
+- LinkedIn: https://www.linkedin.com/in/ziad-sheashaa/
+- Email: ziadmohamedgamal25@gmail.com
 - Availability: Open to internships, collaborations, and engineering roles (Available Remote).
-
----
 
 ## Core Expertise & Tech Stack
 
-- **Artificial Intelligence & ML**: Python, PyTorch, TensorFlow, Scikit-learn, LangChain, Retrieval-Augmented Generation (RAG), LLM Fine-tuning, Vector Databases.
-- **Computer Vision & Robotics**: OpenCV, Haar Cascades, ROS (Robot Operating System), PID Controllers, Autonomous Navigation.
-- **Software Engineering**: TypeScript, React, Next.js, FastAPI, C++17, Qt6/PySide6, Docker, Git.
+- **Artificial Intelligence & ML**: Python, PyTorch, TensorFlow, Scikit-learn, LangChain, LangGraph, Retrieval-Augmented Generation (RAG), LLM Fine-tuning, Vector Databases.
+- **Computer Vision & Robotics**: OpenCV, Haar Cascades, SAM2, ROS (Robot Operating System), PID Controllers, Autonomous Navigation.
+- **Software Engineering**: TypeScript, React, Next.js, FastAPI, C++20, Qt6/PySide6, Docker, Git.
 
----
+## Featured Engineering Projects
 
-## Featured Projects
-
-1. **EVER 5th Generation** (Robotics / Autonomous Driving)
-   - Description: AI-powered autonomous truck system combining machine learning, PID controllers, and computer vision for intelligent lane changes.
-   - Technologies: Python, ROS, Autonomous Driving, Computer Vision.
-   - Repository: https://github.com/ZiadMD/EVER_CLoseLoop
-
-2. **NASA 2025 — TERRA** (AI / Climate Science)
-   - Description: Educational web platform using Scikit-learn ML models to predict climate patterns from NASA data, featuring a Gemini API chatbot and interactive simulation game.
-   - Technologies: Next.js, TypeScript, Scikit-learn, Gemini API.
-   - Live Demo: https://spatuim.vercel.app/
-   - Repository: https://github.com/ZiadMD/Nasa-2025
-
-3. **Cat-Dog Classifier** (Deep Learning / Desktop Application)
-   - Description: PySide6 desktop application using TensorFlow for real-time image classification with custom deep learning models.
-   - Technologies: Python, PySide6, TensorFlow, Deep Learning.
-   - Repository: https://github.com/ZiadMD/cat-dog-classifier
-
-4. **Qt-Cascade-app** (Computer Vision / Desktop)
-   - Description: Real-time desktop object detection application built with C++, Qt, and OpenCV using Haar cascade classifiers.
-   - Technologies: C++, Qt, OpenCV, Computer Vision.
-   - Repository: https://github.com/ZiadMD/Qt-Cascade-app
-
-5. **Numerical Analysis App** (Scientific Computing / C++)
-   - Description: Linux-optimized C++17 application implementing numerical analysis algorithms with a Qt6 GUI for root finding and curve fitting.
-   - Technologies: C++, Qt, Linux.
-   - Repository: https://github.com/ZiadMD/Numerical-Analysis-project
-
-6. **Library Management System (LMS)** (Software Engineering / Algorithms)
-   - Description: High-performance data structure management system in C++ using doubly linked lists with custom sorting and searching algorithms.
-   - Technologies: C++, Data Structures, Algorithms.
-   - Repository: https://github.com/ZiadMD/LMS
-
-7. **AuthMaster** (Security / Python)
-   - Description: Desktop authentication system with Python Tkinter featuring SHA-256 password hashing and secure user verification.
-   - Technologies: Python, GUI, SHA-256 Hashing.
-   - Repository: https://github.com/ZiadMD/AuthMaster
+- [Basira](https://github.com/aboellil0/Basira): AI-powered screening and psychological assessment platform for schools, providing early detection of behavioral and emotional indicators with secure analytics. Live platform: https://bassira.org
+- [Nexcut Studio](https://github.com/Mohanadmomen/Nxtcut): Agentic desktop video editor with an on-device AI service, timeline architecture, and an agent layer featuring MCP-compliant tools, validated tool calls with retry loops, Whisper, SAM2, and Kokoro.
+- [NASA 2025 - TERRA](https://github.com/ZiadMD/Nasa-2025): Educational web platform using Scikit-learn ML models to predict climate patterns from NASA data, featuring a Gemini API chatbot and interactive simulation game. Live demo: https://spatuim.vercel.app/
+- [EVER 5th Generation](https://github.com/ZiadMD/EVER_CLoseLoop): AI-powered autonomous truck system combining machine learning, PID controllers, and computer vision for intelligent lane changes.
+- [Cat-Dog Classifier](https://github.com/ZiadMD/cat-dog-classifier): PySide6 desktop application using TensorFlow for real-time image classification with custom deep learning models.
+- [Qt-Cascade-app](https://github.com/ZiadMD/Qt-Cascade-app): Real-time desktop object detection application built with C++, Qt, and OpenCV using Haar cascade classifiers.
+- [Safespace](https://github.com/ZiadMD/Safespace_node): Edge road-safety system. A Raspberry Pi node with a Sony IMX500 AI camera runs accident-detection models and streams RTSP; a containerized YOLOv8 central service handles accident inference and license-plate extraction.
+- [ScreenSeekeR](https://github.com/ZiadMD/ScreenSeekeR-Desktop-Automation): Vision-based Windows desktop automation that locates UI elements from natural-language descriptions using cascaded visual grounding and vision LLMs.
+- [Computer Vision x Arduino](https://github.com/ZiadMD/Computer-Vision-x-Arduino): MediaPipe face and hand tracking that sends labels over serial to an Arduino driving LED patterns.
+- [Thaj](https://github.com/ZiadMD): Platform for student activities and organizations with flexible roles, attendance tracking, and AI follow-up agents.
+- [Fitness, Nutrition & PT](https://github.com/ZiadMD/Nutrition-Graduation-Project): Graduation project platform combining fitness, nutrition, and physical therapy services with team care management.

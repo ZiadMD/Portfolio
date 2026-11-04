@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import { NAV_LINKS } from "../../data/portfolioData"
 
 interface NavbarProps {
@@ -8,8 +9,32 @@ interface NavbarProps {
 }
 
 export default function Navbar({ activeSection, onNavigate }: NavbarProps) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
+
+  // Phone menu: Escape closes it and returns focus to the toggle.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false)
+        menuBtnRef.current?.focus()
+      }
+    }
+    const onResize = () => {
+      if (window.innerWidth > 700) setMenuOpen(false)
+    }
+    window.addEventListener("keydown", onKey)
+    window.addEventListener("resize", onResize)
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      window.removeEventListener("resize", onResize)
+    }
+  }, [menuOpen])
+
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault()
+    setMenuOpen(false)
     if (onNavigate) {
       onNavigate(id)
     } else {
@@ -69,8 +94,30 @@ export default function Navbar({ activeSection, onNavigate }: NavbarProps) {
           rel="noopener noreferrer"
           aria-label="Download Ziad Mohamed Sheashaa CV (PDF)"
         >
-          CV ↓
+          CV
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 2.5v9M4 7.5l4 4 4-4M3 13.5h10" />
+          </svg>
         </a>
+
+        <button
+          ref={menuBtnRef}
+          type="button"
+          className="btn menu-btn"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-menu"
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          {menuOpen ? "Close" : "Menu"}
+        </button>
+      </div>
+
+      <div id="mobile-menu" className="mnav" hidden={!menuOpen}>
+        {NAV_LINKS.map(({ id, label }) => (
+          <a key={id} href={`#${id}`} onClick={(e) => handleClick(e, id)}>
+            {label}
+          </a>
+        ))}
       </div>
     </nav>
   )

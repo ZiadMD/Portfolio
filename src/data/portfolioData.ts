@@ -1,7 +1,6 @@
 import {
   Project,
   ExperienceItem,
-  StatItem,
   SocialLink,
   NavLink,
 } from "../types/portfolio"
@@ -40,12 +39,6 @@ export const SKILLS: string[] = [
   "TensorFlow",
 ]
 
-export const STATS: StatItem[] = [
-  { value: 8, label: "Projects" },
-  { value: 5, label: "Engineering domains" },
-  { value: 13, label: "Core technologies" },
-]
-
 export const EXPERIENCE_DATA: ExperienceItem[] = [
   {
     when: "Now",
@@ -58,24 +51,6 @@ export const EXPERIENCE_DATA: ExperienceItem[] = [
       "Retrieval-augmented generation (RAG) pipelines.",
       "Multi-agent workflows.",
     ],
-  },
-  {
-    when: "Leadership",
-    role: "Autonomous Driving Leader",
-    company: "SCU Racing Team · Suez Canal University",
-    points: [
-      "Lead the autonomous driving effort of the university racing team.",
-    ],
-  },
-  {
-    when: "Teaching",
-    role: "AI Instructor",
-    company: "IEEE · Suez Canal University",
-  },
-  {
-    when: "Community",
-    role: "AI Vice Leader",
-    company: "Microsoft Student Community · Suez Canal University",
   },
   {
     when: "Independent",
@@ -109,7 +84,6 @@ export const CONTACT_LINKS: SocialLink[] = [
     value: "Download CV (PDF) ↓",
     href: "/Ziad_Mohamed_Sheashaa_CV.pdf",
   },
-  { label: "Location", value: "Available Remote · Ismailia, EG", href: "#" },
 ]
 
 export const FEATURED_PROJECTS: Project[] = [
@@ -121,6 +95,7 @@ export const FEATURED_PROJECTS: Project[] = [
       "An AI-powered screening and psychological assessment platform for schools, providing early detection of behavioral and emotional indicators with secure analytics.",
     tech: ["Next.js", "TypeScript", "Node.js", "MongoDB", "AI"],
     category: "AI",
+    demoUrl: "https://bassira.org",
     githubUrl: "https://github.com/aboellil0/Basira",
     img: "/images/basira.jpg",
     hue: 200,
@@ -128,18 +103,40 @@ export const FEATURED_PROJECTS: Project[] = [
   {
     id: 2,
     title: "Nexcut Studio",
-    subtitle: "Agentic multi-track desktop video editor with on-device AI",
+    subtitle: "Agentic desktop video editor with on-device AI",
     description:
-      "A high-performance multi-track desktop video editor in C++20 with an on-device AI service. Built with a strictly decoupled headless engine, timeline architecture, FFmpeg decoding, Qt 6 / Electron interface, and an agent layer featuring MCP-compliant tools, validated tool calls with retry loops, Whisper, SAM2, and Kokoro.",
-    tech: ["C++20", "Electron", "Qt 6", "FFmpeg", "MCP", "Whisper", "SAM2"],
+      "An Electron-based agentic video editor with an on-device AI service. The agent subsystem translates natural-language editing instructions into timeline actions using MCP-compliant tools, validated tool calls with retry loops, and a local model stack with Whisper, SAM2, and Kokoro.",
+    tech: ["Electron", "TypeScript", "MCP", "Whisper", "SAM2", "Kokoro"],
     category: "AI",
     githubUrl: "https://github.com/Mohanadmomen/Nxtcut",
     img: "/images/nexcut.jpg",
     hue: 20,
   },
   {
+    id: 9,
+    title: "Safespace",
+    subtitle: "Edge road-safety and accident detection system",
+    description:
+      "A road-monitoring system built in three parts: an edge node on a Raspberry Pi with a Sony IMX500 AI camera that runs accident-detection models and streams RTSP, a containerized YOLOv8 central AI service for accident inference and license-plate extraction, and a training and evaluation pipeline for the models. Nodes report to the central unit over Socket.IO and WebSockets.",
+    tech: ["Python", "YOLOv8", "Raspberry Pi", "RTSP", "Docker", "PyQt6"],
+    category: "AI",
+    githubUrl: "https://github.com/ZiadMD/Safespace_node",
+    hue: 30,
+  },
+  {
+    id: 10,
+    title: "ScreenSeekeR",
+    subtitle: "Vision-based Windows desktop automation",
+    description:
+      "A desktop automation system that finds UI elements from natural-language descriptions using a cascaded visual-grounding search inspired by the ScreenSeekeR paper: region proposals ranked by Gaussian centrality and non-maximum suppression, then recursive crop refinement. Works with Gemini, OpenAI, Groq or local Ollama vision models, corrects for DPI scaling, and includes a watchdog that dismisses blocking dialogs.",
+    tech: ["Python", "Vision LLMs", "PyAutoGUI", "Gemini", "Ollama"],
+    category: "AI",
+    githubUrl: "https://github.com/ZiadMD/ScreenSeekeR-Desktop-Automation",
+    hue: 260,
+  },
+  {
     id: 3,
-    title: "NASA 2025 — TERRA",
+    title: "NASA 2025: TERRA",
     subtitle: "ML climate predictions from NASA data",
     description:
       "Educational web platform using Scikit-learn ML models to predict climate patterns from NASA data, with a Gemini API chatbot and interactive game.",
@@ -147,7 +144,6 @@ export const FEATURED_PROJECTS: Project[] = [
     category: "AI",
     demoUrl: "https://spatuim.vercel.app/",
     githubUrl: "https://github.com/ZiadMD/Nasa-2025",
-    img: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=800&h=560&fit=crop&auto=format",
     hue: 220,
   },
   {
@@ -159,7 +155,6 @@ export const FEATURED_PROJECTS: Project[] = [
     tech: ["Python", "ROS", "Autonomous driving"],
     category: "Robotics",
     githubUrl: "https://github.com/ZiadMD/EVER_CLoseLoop",
-    img: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&h=560&fit=crop&auto=format",
     hue: 350,
   },
   {
@@ -171,7 +166,6 @@ export const FEATURED_PROJECTS: Project[] = [
     tech: ["Python", "PySide6", "TensorFlow", "Deep learning"],
     category: "AI",
     githubUrl: "https://github.com/ZiadMD/cat-dog-classifier",
-    img: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=800&h=560&fit=crop&auto=format",
     hue: 140,
   },
   {
@@ -183,8 +177,18 @@ export const FEATURED_PROJECTS: Project[] = [
     tech: ["C++", "Qt", "OpenCV", "Computer vision"],
     category: "Software",
     githubUrl: "https://github.com/ZiadMD/Qt-Cascade-app",
-    img: "https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=800&h=560&fit=crop&auto=format",
     hue: 280,
+  },
+  {
+    id: 11,
+    title: "Computer Vision x Arduino",
+    subtitle: "Face and hand tracking that drives hardware",
+    description:
+      "MediaPipe face and hand detection on a PC camera, turned into small labels or finger counts and sent over a serial protocol to an Arduino that shows them as LED patterns. Includes the Arduino sketch, wiring notes and a step-by-step build guide.",
+    tech: ["Python", "MediaPipe", "OpenCV", "Arduino", "Serial"],
+    category: "Robotics",
+    githubUrl: "https://github.com/ZiadMD/Computer-Vision-x-Arduino",
+    hue: 190,
   },
 ]
 

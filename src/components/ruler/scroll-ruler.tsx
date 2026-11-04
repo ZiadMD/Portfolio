@@ -413,6 +413,7 @@ export default function ScrollRuler() {
       >
         <div
           id="frost"
+          aria-hidden={true}
           style={{
             maskImage: frostMask(look.frostSolid, look.frostGamma),
             WebkitMaskImage: frostMask(look.frostSolid, look.frostGamma),
@@ -422,7 +423,7 @@ export default function ScrollRuler() {
         <div
           id="rulerTrack"
           ref={trackRef}
-          aria-hidden
+          aria-hidden={true}
           style={{ height: geom.docH || "100%" }}
         >
           {ticks.map((t, i) => (
@@ -459,13 +460,13 @@ export default function ScrollRuler() {
           ))}
         </div>
 
-        <div id="bracket" ref={bracketRef} aria-hidden>
+        <div id="bracket" ref={bracketRef} aria-hidden={true}>
           <div className="bracket-fill" />
           <span className="bracket-edge top" />
           <span className="bracket-edge bottom" />
         </div>
 
-        <div id="needle" ref={needleRef} aria-hidden>
+        <div id="needle" ref={needleRef} aria-hidden={true}>
           <span className="needle-line" />
           <span id="readout" ref={readoutRef}>
             <span className="ruler-digits">
@@ -487,10 +488,11 @@ export default function ScrollRuler() {
           </span>
         </div>
 
-        <div id="ghostLine" ref={ghostLineRef} aria-hidden />
+        <div id="ghostLine" ref={ghostLineRef} aria-hidden={true} />
 
         <div
           id="hit"
+          aria-hidden={true}
           onPointerEnter={railPointerEnter}
           onPointerLeave={railPointerLeave}
           onPointerMove={railPointerMove}

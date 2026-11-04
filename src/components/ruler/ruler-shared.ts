@@ -1,4 +1,4 @@
-// Shared constants, types, and math for the scroll ruler and heading flow — 1:1 with artcraft-services
+// Shared constants, types, and math for the scroll ruler and heading flow: 1:1 with artcraft-services
 
 export const NAV_H = 52
 

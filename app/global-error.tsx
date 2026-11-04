@@ -16,15 +16,15 @@ export default function GlobalError({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          minHeight: "100vh",
+          minHeight: "100dvh",
           margin: 0,
         }}
       >
         <div style={{ textAlign: "center" }}>
           <p
             style={{
-              color: "#c9191e",
-              fontSize: "11px",
+              color: "#ff4a3d",
+              fontSize: "12px",
               letterSpacing: "0.3em",
               textTransform: "uppercase",
               marginBottom: "16px",
@@ -35,11 +35,11 @@ export default function GlobalError({
           <button
             onClick={reset}
             style={{
-              border: "1px solid #333",
+              border: "1px solid #27272a",
               background: "transparent",
-              color: "#888",
+              color: "#a1a1aa",
               padding: "10px 24px",
-              fontSize: "11px",
+              fontSize: "12px",
               letterSpacing: "0.2em",
               textTransform: "uppercase",
               cursor: "pointer",

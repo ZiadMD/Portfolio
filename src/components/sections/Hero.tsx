@@ -1,21 +1,7 @@
 "use client"
 
-// Live Cairo clock
-
-// Canvas particle simulations
-/* <div className="hud st">
-        <i />
-        Available remote · Ismailia, EG · <span id="clk">{cairoTime}</span>
-      </div>
-
-      <span className="cx" style={{ left: 12, top: 60 }}>
-        +
-      </span>
-      <span className="cx" style={{ right: 12, top: 60 }}>
-        +
-      </span> */
-
 import { useEffect, useRef, useState } from "react"
+import { motion, useReducedMotion } from "motion/react"
 import { ICONS, PULL, ORB } from "../../data/heroIcons"
 import { DESKTOP_PHOTO_SRC, MOBILE_PHOTO_SRC } from "../../data/photoSrc"
 import { SKILLS } from "../../data/portfolioData"
@@ -23,6 +9,8 @@ import { SKILLS } from "../../data/portfolioData"
 interface PhotoCell {
   tx: number
   ty: number
+  baseTx: number
+  baseTy: number
   r: number
   co: string
   dl: number
@@ -48,6 +36,9 @@ interface SpiralItem {
   j: number
   sz: number
   br: number
+  isAccent: boolean
+  twinkleSpeed: number
+  twinklePhase: number
 }
 
 interface OrbitItem {
@@ -57,21 +48,43 @@ interface OrbitItem {
   sz: number
 }
 
+// Ambient floating particles using Motion
+const AMBIENT_PARTICLES = Array.from({ length: 18 }).map((_, i) => ({
+  id: i,
+  size: i % 3 === 0 ? 3.5 : i % 2 === 0 ? 2.5 : 1.8,
+  left: `${((i * 17 + 7) % 92) + 4}%`,
+  top: `${((i * 23 + 11) % 78) + 12}%`,
+  duration: 8 + (i % 5) * 2.5,
+  delay: (i % 6) * 0.9,
+  driftX: (i % 2 === 0 ? 1 : -1) * (16 + (i % 4) * 8),
+  isAccent: i % 4 === 0,
+}))
+
+// Live Cairo clock. Its own component so the per-second tick re-renders
+// only this text, not the whole hero and its animated particles.
+function CairoClock() {
+  const [time, setTime] = useState<string>("--:--:--")
+  useEffect(() => {
+    const update = () =>
+      setTime(
+        new Date().toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo" }),
+      )
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
+  }, [])
+  return <time id="clk">{time}</time>
+}
+
 export default function Hero() {
   const heroRef = useRef<HTMLElement>(null)
   const photoCanvasRef = useRef<HTMLCanvasElement>(null)
   const spiralCanvasRef = useRef<HTMLCanvasElement>(null)
-  const [cairoTime, setCairoTime] = useState<string>("--:--:--")
-  useEffect(() => {
-    const updateTime = () => {
-      setCairoTime(
-        new Date().toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo" }),
-      )
-    }
-    updateTime()
-    const interval = setInterval(updateTime, 1000)
-    return () => clearInterval(interval)
-  }, [])
+  const shadowCanvasRef = useRef<HTMLCanvasElement>(null)
+  const replayTriggerRef = useRef<(() => void) | null>(null)
+  const reduceMotion = useReducedMotion()
+
+  // Canvas particle simulations
   useEffect(() => {
     const hero = heroRef.current
     const P = photoCanvasRef.current
@@ -82,9 +95,9 @@ export default function Hero() {
     const sx = S.getContext("2d")
     if (!px || !sx) return
 
-    let INK = "#fff"
-    let INKRGB = "255,255,255"
-    let GRY = "#a9a9ad"
+    const INK = "#ecebe7"
+    const INKRGB = "236,235,231"
+    const GRY = "#a9a9ad"
 
     const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v))
     const ei = (k: number) => k * k * k
@@ -114,7 +127,8 @@ export default function Hero() {
     let vis = true
     const M = { x: -1e4, y: -1e4 }
 
-    const wide = () => (W > H ? 1.45 : 1)
+    // Organic aspect ratio: preserves spiral shape without extreme pancake stretching
+    const wide = () => (W > H ? Math.min(1.22, 1 + (W / H - 1) * 0.18) : 1)
 
     function sample(k: string): [number, number, number, number, number][] {
       if (!ICONS[k]) return []
@@ -122,7 +136,7 @@ export default function Hero() {
       const g = c.getContext("2d")
       if (!g) return []
       c.width = c.height = 72
-      g.fillStyle = "#fff"
+      g.fillStyle = "#ecebe7"
       g.scale(3, 3)
       g.fill(new Path2D(ICONS[k].p))
 
@@ -158,17 +172,22 @@ export default function Hero() {
     function buildSpiral() {
       sp = []
       const isMobile = W < 768
-      const N = isMobile ? 3000 : 4000
+      const N = isMobile ? 2600 : 3800
       for (let i = 0; i < N; i++) {
         const u = 0.02 + 0.98 * rnd()
+        // ~12% vibrant red-orange stardust embers
+        const isAccent = rnd() < 0.12
         sp.push({
           arm: i % 4,
           u,
-          j: (rnd() - 0.5) * 0.45 * (0.25 + u),
+          j: (rnd() - 0.5) * 0.45 * (0.2 + u),
           sz:
-            (rnd() < 0.15 ? 1.6 : rnd() < 0.4 ? 1.1 : 0.75) *
-            (isMobile ? 0.95 : 1),
+            (rnd() < 0.12 ? 1.6 : rnd() < 0.35 ? 1.1 : 0.75) *
+            (isMobile ? 0.9 : 1),
           br: 0.35 + 0.65 * rnd(),
+          isAccent,
+          twinkleSpeed: 1.5 + rnd() * 3.5,
+          twinklePhase: rnd() * 6.28,
         })
       }
     }
@@ -195,39 +214,63 @@ export default function Hero() {
     function buildPhoto() {
       if (!img || !img.naturalWidth || !img.naturalHeight) return
       const isMobile = W < 768
-      const rowsN = isMobile ? 96 : 100
       const ia = img.naturalWidth / img.naturalHeight
-      const hh = isMobile
-        ? Math.min(H * 0.88, W * 1.85)
-        : Math.min(H * 0.86, (W * 0.95) / ia)
-      const cell = hh / rowsN
-      const cols = Math.round((hh * ia) / cell)
-      const rows = rowsN
+
+      let hh: number
+      let cell: number
+      let cols: number
+      let rows: number
+      let ox: number
+      let oy: number
+
+      if (isMobile) {
+        // Mobile sizing: target visible width <= 86% of viewport, max 380px
+        const maxVisibleW = Math.min(W * 0.86, 380)
+        const maxVisibleH = H * 0.65
+        let targetVisibleH = maxVisibleW / 0.843
+        if (targetVisibleH > maxVisibleH) {
+          targetVisibleH = maxVisibleH
+        }
+        hh = targetVisibleH / 0.9514
+        // High-resolution mobile density (cell ~3.2px)
+        rows = Math.min(136, Math.max(96, Math.round(hh / 3.2)))
+        cell = hh / rows
+        cols = Math.round((hh * ia) / cell)
+        ox = cx - (cols * cell) / 2
+        oy = H - 38 - rows * cell
+      } else {
+        // Desktop sizing: target visible height <= 82% of viewport, max 820px
+        const targetVisibleH = Math.min(H * 0.82, 820)
+        const maxVisibleW = W * 0.78
+        const visibleW = targetVisibleH * 1.077
+        const effectiveVisibleH =
+          visibleW > maxVisibleW ? maxVisibleW / 1.077 : targetVisibleH
+        hh = effectiveVisibleH / 0.9505
+        // High-resolution desktop density (cell ~3.8px) - more than 3X point density
+        rows = Math.min(196, Math.max(140, Math.round(hh / 3.8)))
+        cell = hh / rows
+        cols = Math.round((hh * ia) / cell)
+        ox = cx - (cols * cell) * (1414 / 2752)
+        oy = H - rows * cell
+      }
 
       const c = document.createElement("canvas")
       c.width = cols
       c.height = rows
       const g = c.getContext("2d")
       if (!g) return
+      g.imageSmoothingEnabled = true
+      g.imageSmoothingQuality = "high"
       g.drawImage(img, 0, 0, cols, rows)
 
       const d = g.getImageData(0, 0, cols, rows).data
-      const ox = cx - (cols * cell) / 2
-      const bottomOffset = isMobile ? 10 : 0
-      const oy = H - bottomOffset - rows * cell
-      const cells: {
-        tx: number
-        ty: number
-        r: number
-        co: string
-        dl: number
-      }[] = []
+      const cells: PhotoCell[] = []
 
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
           const i = (y * cols + x) * 4
-          if (d[i + 3] < 90) continue
-          if (rnd() > clamp((rows - 1 - y) / (rows * 0.14))) continue
+          if (d[i + 3] < 80) continue
+          if (rnd() > clamp((rows - 1 - y) / (rows * 0.10))) continue
 
           const tx = ox + x * cell + cell / 2
           const ty = oy + y * cell + cell / 2
@@ -235,13 +278,60 @@ export default function Hero() {
           cells.push({
             tx,
             ty,
-            r: cell * (0.34 + 0.14 * lum),
+            baseTx: tx,
+            baseTy: ty,
+            r: cell * (0.36 + 0.18 * lum),
             co: `rgb(${d[i]},${d[i + 1]},${d[i + 2]})`,
             dl: (Math.hypot(tx - cx, ty - cy) / (W * 0.6)) * 0.7 + rnd() * 0.2,
           })
         }
       }
-      ph = { c: cells, bmp: null }
+
+      // Pre-bake high-resolution bitmap with full devicePixelRatio D for buttery 120fps post-intro rendering
+      const b = document.createElement("canvas")
+      b.width = W * D
+      b.height = H * D
+      const bg = b.getContext("2d")
+      if (bg) {
+        bg.scale(D, D)
+        for (let j = 0; j < cells.length; j++) {
+          const cellItem = cells[j]
+          bg.fillStyle = cellItem.co
+          bg.beginPath()
+          bg.arc(cellItem.baseTx, cellItem.baseTy, cellItem.r, 0, 6.283)
+          bg.fill()
+        }
+      }
+
+      ph = { c: cells, bmp: b }
+      drawShadowSilhouette(ox, oy, cols, rows, cell)
+    }
+
+    function drawShadowSilhouette(
+      ox: number,
+      oy: number,
+      cols: number,
+      rows: number,
+      cell: number,
+    ) {
+      const X = shadowCanvasRef.current
+      if (!X || !img || !img.naturalWidth || !img.naturalHeight) return
+      const xx = X.getContext("2d")
+      if (!xx) return
+
+      xx.clearRect(0, 0, W, H)
+      const renderW = cols * cell
+      const renderH = rows * cell
+      if (renderW <= 0 || renderH <= 0) return
+
+      xx.save()
+      xx.imageSmoothingEnabled = true
+      xx.imageSmoothingQuality = "high"
+      xx.drawImage(img, ox, oy, renderW, renderH)
+      xx.globalCompositeOperation = "source-in"
+      xx.fillStyle = "#09090a"
+      xx.fillRect(ox, oy, renderW, renderH)
+      xx.restore()
     }
 
     function layout() {
@@ -259,25 +349,24 @@ export default function Hero() {
       px!.setTransform(D, 0, 0, D, 0, 0)
       sx!.setTransform(D, 0, 0, D, 0, 0)
 
+      const X = shadowCanvasRef.current
+      if (X) {
+        X.width = W * D
+        X.height = H * D
+        const xx = X.getContext("2d")
+        if (xx) xx.setTransform(D, 0, 0, D, 0, 0)
+      }
+
       const isMobile = W < 768
       const targetImg = getPreferredImg(W)
       if (targetImg) {
         img = targetImg
       }
 
+      // Center the spiral origin cleanly in the upper-middle hero viewport
       cx = W / 2
-      const ia =
-        img && img.naturalWidth && img.naturalHeight
-          ? img.naturalWidth / img.naturalHeight
-          : isMobile
-            ? 0.805
-            : 1.79
-      const hh = isMobile
-        ? Math.min(H * 0.88, W * 1.85)
-        : Math.min(H * 0.86, (W * 0.95) / ia)
-      const bottomOffset = isMobile ? 10 : 0
-      cy = isMobile ? H - bottomOffset - hh * 0.48 : H - hh * 0.5
-      sc = isMobile ? Math.min(W * 0.95, H * 0.45) : Math.min(W, H) * 0.58
+      cy = isMobile ? H * 0.44 : H * 0.48
+      sc = isMobile ? Math.min(W * 0.9, H * 0.46) : Math.min(W, H) * 0.54
 
       buildSpiral()
       buildLogos()
@@ -286,64 +375,90 @@ export default function Hero() {
 
     function state(t: number) {
       if (t < 0.8) return { s: 1, al: (t / 0.8) * 0.8, sp: 0.35 }
-      if (t < 5.2) {
-        const u = (t - 0.8) / 4.4
-        return { s: 1 - 0.97 * ei(u), al: 0.35, sp: 0.35 + 4 * ei(u) }
+      if (t < 4.8) {
+        const u = (t - 0.8) / 4.0
+        return { s: 1 - 0.97 * ei(u), al: 0.35 + 0.25 * u, sp: 0.35 + 4.2 * ei(u) }
       }
-      if (t < 6.2) return { s: 0.03, al: 1, sp: 5 }
-      if (t < 7.6) {
-        const u = eo(clamp((t - 6.2) / 1.4))
-        return { s: 0.03 + 0.97 * u, al: 1 - 0.78 * u, sp: 5 - 4.88 * u }
+      if (t < 5.8) return { s: 0.03, al: 1, sp: 5.2 }
+      if (t < 7.4) {
+        const u = eo(clamp((t - 5.8) / 1.6))
+        return { s: 0.03 + 0.97 * u, al: 1 - 0.76 * u, sp: 5.2 - 5.12 * u }
       }
-      return { s: 1, al: 0.22, sp: 0.12 }
+      return { s: 1, al: 0.24, sp: 0.08 }
     }
 
     function drawSpiral(t: number, dt: number) {
       const st = state(t)
       ang += st.sp * dt
       sx!.clearRect(0, 0, W, H)
-      sx!.fillStyle = INK
 
-      const R = Math.min(W, H) * 0.2
+      const R = Math.min(W, H) * 0.22
       const w = wide()
+      const isPostIntro = t >= 7.2
+      const hasMouse = M.x > -1e3 && M.y > -1e3
+
+      // Gentle mouse parallax tilt for cosmic depth
+      const parallaxX = isPostIntro && hasMouse ? (M.x - cx) * 0.025 : 0
+      const parallaxY = isPostIntro && hasMouse ? (M.y - cy) * 0.025 : 0
+
       for (let i = 0; i < sp.length; i++) {
         const p = sp[i]
         const a = p.arm * 1.5708 + p.u * 5.2 + p.j + ang
         const r = p.u * sc * st.s
-        let x = cx + Math.cos(a) * r * w
-        let y = cy + Math.sin(a) * r
-        const al =
-          Math.min(1, st.al * 1.5) * (0.25 + 0.75 * (1 - p.u * 0.6)) * p.br
-        const s = p.sz * (0.55 + (1 - p.u) * 0.9)
-        const dx = x - M.x
-        const dy = y - M.y
-        const d = Math.hypot(dx, dy)
+        let x = cx + Math.cos(a) * r * w + parallaxX * (1 - p.u * 0.5)
+        let y = cy + Math.sin(a) * r + parallaxY * (1 - p.u * 0.5)
 
-        if (d < R && st.s > 0.5) {
-          const f = 1 - d / R
-          x += (dx / (d + 1)) * f * 30
-          y += (dy / (d + 1)) * f * 30
+        // Dynamic star twinkling
+        const tw = 0.75 + 0.25 * Math.sin(t * p.twinkleSpeed + p.twinklePhase)
+        const al =
+          Math.min(1, st.al * 1.5) * (0.28 + 0.72 * (1 - p.u * 0.6)) * p.br * tw
+        const s = p.sz * (0.55 + (1 - p.u) * 0.9)
+
+        if (hasMouse && st.s > 0.4) {
+          const dx = x - M.x
+          const dy = y - M.y
+          const d = Math.hypot(dx, dy)
+          if (d < R && d > 0) {
+            const f = (1 - d / R) * 26
+            x += (dx / d) * f
+            y += (dy / d) * f
+          }
         }
 
         sx!.globalAlpha = al
+        sx!.fillStyle = p.isAccent ? "#ff4a3d" : INK
         sx!.beginPath()
         sx!.arc(x, y, s, 0, 6.283)
         sx!.fill()
       }
       sx!.globalAlpha = 1
 
-      if (t > 6.2 && t < 7.6) {
-        const u = (t - 6.2) / 1.4
+      // Dual Shockwave Rings during transition (t: 5.8s -> 7.4s)
+      if (t > 5.8 && t < 7.4) {
+        const u = (t - 5.8) / 1.6
+        const maxR = Math.max(W, H) * 0.75
+
+        // Primary starlight shockwave ring
         sx!.strokeStyle = `rgba(${INKRGB},${(1 - u) * 0.7})`
-        sx!.lineWidth = 1.5
+        sx!.lineWidth = 1.8
         sx!.beginPath()
-        sx!.arc(cx, cy, u * Math.max(W, H) * 0.7, 0, 7)
+        sx!.arc(cx, cy, u * maxR, 0, 6.283)
         sx!.stroke()
+
+        // Secondary ember shockwave ring
+        if (u > 0.12) {
+          const u2 = (u - 0.12) / 0.88
+          sx!.strokeStyle = `rgba(255, 74, 61, ${(1 - u2) * 0.45})`
+          sx!.lineWidth = 1.2
+          sx!.beginPath()
+          sx!.arc(cx, cy, u2 * maxR * 0.85, 0, 6.283)
+          sx!.stroke()
+        }
       }
     }
 
     function drawLogos(t: number) {
-      if (t > 5.0) return
+      if (t > 5.2) return
       const w = wide()
       const st = state(t)
 
@@ -407,8 +522,8 @@ export default function Hero() {
     }
 
     function drawOrbit(t: number, dt: number) {
-      if (t < 6.2 || !orbits.length) return
-      const f = eo(clamp((t - 6.2) / 1.6))
+      if (t < 5.8 || !orbits.length) return
+      const f = eo(clamp((t - 5.8) / 1.6))
       const w = wide()
       const R = Math.min(W, H) * 0.18
       oA += 0.2 * dt
@@ -444,43 +559,45 @@ export default function Hero() {
 
     function drawPhoto(t: number) {
       px!.clearRect(0, 0, W, H)
-      if (!ph || t < 6.2) return
-      const te = t - 6.2
-      if (ph.bmp) {
-        px!.drawImage(ph.bmp, 0, 0, W, H)
-        return
-      }
-      for (const c of ph.c) {
-        const k = clamp((te - c.dl) / 0.9)
-        if (k <= 0) continue
-        const e = eo(k)
-        const rt = (1 - e) * 1.8
-        const co = Math.cos(rt)
-        const si = Math.sin(rt)
-        const ux = (c.tx - cx) * e
-        const uy = (c.ty - cy) * e
-        px!.globalAlpha = k
-        px!.fillStyle = c.co
-        px!.beginPath()
-        px!.arc(cx + ux * co - uy * si, cy + ux * si + uy * co, c.r, 0, 6.283)
-        px!.fill()
-      }
-      px!.globalAlpha = 1
+      if (!ph || t < 5.8) return
+      const te = t - 5.8
+      const isIntro = te < 1.8
 
-      if (te > 2.4) {
-        const b = document.createElement("canvas")
-        b.width = W * D
-        b.height = H * D
-        const g = b.getContext("2d")
-        if (g) {
-          g.scale(D, D)
-          for (const c of ph.c) {
-            g.fillStyle = c.co
-            g.beginPath()
-            g.arc(c.tx, c.ty, c.r, 0, 6.283)
-            g.fill()
+      if (isIntro) {
+        // Coalescing intro phase
+        for (let i = 0; i < ph.c.length; i++) {
+          const c = ph.c[i]
+          const k = clamp((te - c.dl) / 0.85)
+          if (k <= 0) continue
+          const e = eo(k)
+          const rt = (1 - e) * 1.8
+          const co = Math.cos(rt)
+          const si = Math.sin(rt)
+          const ux = (c.baseTx - cx) * e
+          const uy = (c.baseTy - cy) * e
+          const curX = cx + ux * co - uy * si
+          const curY = cy + ux * si + uy * co
+          px!.globalAlpha = k
+          px!.fillStyle = c.co
+          px!.beginPath()
+          px!.arc(curX, curY, c.r, 0, 6.283)
+          px!.fill()
+        }
+        px!.globalAlpha = 1
+      } else {
+        // LIVING PORTRAIT (After intro ends)
+        // High-resolution pre-rendered crisp bitmap with subtle organic breathing wave
+        const breathY = Math.sin(t * 1.4) * 0.35
+        if (ph.bmp) {
+          px!.drawImage(ph.bmp, 0, breathY, W, H)
+        } else {
+          for (let i = 0; i < ph.c.length; i++) {
+            const c = ph.c[i]
+            px!.fillStyle = c.co
+            px!.beginPath()
+            px!.arc(c.baseTx, c.baseTy + breathY, c.r, 0, 6.283)
+            px!.fill()
           }
-          ph.bmp = b
         }
       }
     }
@@ -500,6 +617,18 @@ export default function Hero() {
       drawSpiral(t, dt)
       drawLogos(t)
       drawOrbit(t, dt)
+
+      const X = shadowCanvasRef.current
+      if (X) {
+        if (t < 5.8) {
+          X.style.opacity = "0"
+        } else if (t < 7.4) {
+          const u = clamp((t - 5.8) / 1.6)
+          X.style.opacity = String(u * 0.5)
+        } else {
+          X.style.opacity = "0.5"
+        }
+      }
     }
 
     const onPointerMove = (e: PointerEvent) => {
@@ -521,18 +650,33 @@ export default function Hero() {
 
     let rt: NodeJS.Timeout | number
     let lw = 0
+    let lh = 0
     const onResize = () => {
       clearTimeout(rt)
       rt = setTimeout(() => {
+        if (!hero) return
         const cw = hero.clientWidth
-        const crossedBreakpoint = cw < 768 !== lw < 768
-        if (crossedBreakpoint || Math.abs(cw - lw) > 20 || !lw) {
+        const ch = hero.clientHeight
+        const crossedBreakpoint = (cw < 768) !== (lw < 768)
+        if (
+          crossedBreakpoint ||
+          Math.abs(cw - lw) > 15 ||
+          Math.abs(ch - lh) > 15 ||
+          !lw
+        ) {
           lw = cw
+          lh = ch
           layout()
         }
-      }, 100)
+      }, 80)
     }
     window.addEventListener("resize", onResize)
+
+    // ResizeObserver tracks hero dimension changes accurately
+    const ro = new ResizeObserver(() => {
+      onResize()
+    })
+    ro.observe(hero)
 
     const onImgLoad = () => {
       if (!hero) return
@@ -550,19 +694,24 @@ export default function Hero() {
     desktopImg.src = DESKTOP_PHOTO_SRC
     mobileImg.src = MOBILE_PHOTO_SRC
 
-    const replayBtn = hero.querySelector<HTMLButtonElement>("#replay")
-    const onReplay = () => {
+    const resetIntro = () => {
       T0 = performance.now()
       ang = 0
-      if (ph) ph.bmp = null
+      oA = 0
+      oB = 0
+      const X = shadowCanvasRef.current
+      if (X) X.style.opacity = "0"
     }
-    if (replayBtn) replayBtn.addEventListener("click", onReplay)
+    replayTriggerRef.current = resetIntro
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       T0 -= 20000
+      const X = shadowCanvasRef.current
+      if (X) X.style.opacity = "0.5"
     }
 
     lw = hero.clientWidth
+    lh = hero.clientHeight
     layout()
     animId = requestAnimationFrame(frame)
 
@@ -573,34 +722,89 @@ export default function Hero() {
     return () => {
       cancelAnimationFrame(animId)
       observer.disconnect()
+      ro.disconnect()
       window.removeEventListener("resize", onResize)
       hero.removeEventListener("pointermove", onPointerMove)
       hero.removeEventListener("pointerleave", onPointerLeave)
       desktopImg.onload = null
       mobileImg.onload = null
-      if (replayBtn) replayBtn.removeEventListener("click", onReplay)
     }
   }, [])
+
+  const handleReplay = () => {
+    if (replayTriggerRef.current) {
+      replayTriggerRef.current()
+    }
+  }
 
   return (
     <header id="hero" data-l="~/intro" ref={heroRef}>
       <div className="grid" />
       <canvas id="spiral" ref={spiralCanvasRef} aria-hidden="true" />
+      <canvas id="photo-shadow" ref={shadowCanvasRef} aria-hidden="true" />
       <div className="veil" />
       <canvas id="photo" ref={photoCanvasRef} aria-hidden="true" />
 
-      {}
+      {/* Floating Motion ambient particle effect (skipped for reduced motion) */}
+      <div className="hero-particles" aria-hidden="true">
+        {!reduceMotion && AMBIENT_PARTICLES.map((p) => (
+          <motion.span
+            key={p.id}
+            className={`hero-particle ${p.isAccent ? "accent" : ""}`}
+            style={{
+              width: p.size,
+              height: p.size,
+              left: p.left,
+              top: p.top,
+            }}
+            animate={{
+              y: [0, -45, -90, -140],
+              x: [0, p.driftX * 0.5, p.driftX, p.driftX * 1.2],
+              opacity: [0, p.isAccent ? 0.85 : 0.6, p.isAccent ? 0.95 : 0.7, 0],
+              scale: [0.8, 1.2, 1, 0.6],
+            }}
+            transition={{
+              duration: p.duration,
+              repeat: Infinity,
+              delay: p.delay,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="hud st">
+        <span className="beacon-dot" aria-hidden="true" />
+        <span>
+          Available remote · Ismailia, EG · <CairoClock />
+        </span>
+      </div>
+
+      <span className="cx" style={{ left: 16, top: 72 }} aria-hidden="true">
+        +
+      </span>
+      <span className="cx" style={{ right: 16, top: 72 }} aria-hidden="true">
+        +
+      </span>
 
       <div className="cap">
         <div>
-          <p className="eye">Software &amp; AI Engineer</p>
-          <h1>
-            Ziad M. <em>Sheashaa</em>
-          </h1>
+          <h1>Ziad M. Sheashaa</h1>
+          <p className="sub">
+            Software &amp; AI Engineer building deep learning models and
+            production AI systems.
+          </p>
         </div>
-        <button className="btn" id="replay" type="button">
-          replay intro ↻
-        </button>
+        <motion.button
+          className="btn"
+          id="replay"
+          type="button"
+          onClick={handleReplay}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+        >
+          Replay intro
+        </motion.button>
       </div>
 
       <div className="mq mqh" aria-hidden="true">
