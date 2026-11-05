@@ -481,7 +481,13 @@ export default function Work({ lenisRef }: WorkProps) {
               >
                 <div className="now-card-thumb">
                   {imgSrc && (
-                    <img src={imgSrc} alt="" loading="lazy" decoding="async" />
+                    <img
+                      src={imgSrc}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className={project.img ? undefined : "art"}
+                    />
                   )}
                   <div className="now-card-status">
                     <span className="pulse-dot" aria-hidden="true" />

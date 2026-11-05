@@ -1072,8 +1072,11 @@ h2, .big {
 @media (max-width: 768px) {
   .now-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
   }
+  .now-grid .now-card-body { padding: 16px; }
+  .now-grid .now-card-sub { margin-bottom: 8px; }
+  .now-grid .now-card-desc { -webkit-line-clamp: 2; line-clamp: 2; }
 }
 .now-card {
   position: relative;
@@ -1093,7 +1096,7 @@ h2, .big {
 .now-card-thumb {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 21 / 9;
   background: var(--panel);
   overflow: hidden;
   border-bottom: 1px solid var(--line);
@@ -1104,6 +1107,10 @@ h2, .big {
   object-fit: cover;
   display: block;
   transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* Generated title cards (no photo): show the whole letter, not a crop. */
+.now-card-thumb img.art {
+  object-fit: contain;
 }
 .now-card:hover .now-card-thumb img {
   transform: scale(1.04);
@@ -1122,7 +1129,7 @@ h2, .big {
   z-index: 2;
 }
 .now-card-body {
-  padding: 24px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -1144,22 +1151,26 @@ h2, .big {
   line-height: 1.45;
 }
 .now-card-desc {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.55;
   color: var(--soft);
   flex-grow: 1;
+  /* A summary: the full text and the note are in the details window. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
 }
 .now-card-note {
-  margin: 0 0 18px;
-  font-size: 13px;
-  color: var(--mut);
+  display: none;
 }
 .now-card-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 .now-card-tags span {
   font-size: 12px;
@@ -1171,7 +1182,7 @@ h2, .big {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 14px;
+  padding-top: 10px;
   border-top: 1px solid var(--line);
   font-size: 13px;
 }
