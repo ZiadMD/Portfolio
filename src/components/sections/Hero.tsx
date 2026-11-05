@@ -9,8 +9,9 @@
  * (TOTAL) and runs on from there (thin red rain, breathing tint, the odd
  * glitch). Hovering scrambles the glyphs under the cursor.
  *
- * It renders at FPS frames a second, only while the hero is on screen and
- * the intro is not covering it. Reduced motion: one still frame.
+ * It renders at FPS frames a second while the hero or the About section is
+ * on screen (so it is already running when you scroll back up) and the
+ * intro is not covering it. Reduced motion: one still frame.
  */
 
 import { useEffect, useRef, useState } from "react"
@@ -103,8 +104,7 @@ export default function Hero() {
         last = now
         return
       }
-      // Hold the frame while the page scrolls: the scroll gets the frames.
-      if (!engine || !vis || document.hidden || now - scrolledAt < 160) {
+      if (!engine || !vis || document.hidden) {
         last = now
         return
       }
@@ -120,25 +120,31 @@ export default function Hero() {
       engine?.setPointer(e.clientX - r.left, e.clientY - r.top)
     }
     const onLeave = () => engine?.setPointer(null)
-    let scrolledAt = -1e9
-    const onScroll = () => (scrolledAt = performance.now())
 
     let rt = 0
     const ro = new ResizeObserver(() => {
       window.clearTimeout(rt)
       rt = window.setTimeout(build, 120)
     })
+    // Keep rendering while the hero or the About section below it is on
+    // screen, so it is already running when you scroll back up to it.
+    const near = new Set<Element>()
     const io = new IntersectionObserver((entries) => {
-      vis = entries[0].isIntersecting
+      for (const e of entries) {
+        if (e.isIntersecting) near.add(e.target)
+        else near.delete(e.target)
+      }
+      vis = near.size > 0
     })
+    const about = document.getElementById("about")
 
     build()
     ro.observe(hero)
     if (!reduce) {
       io.observe(hero)
+      if (about) io.observe(about)
       hero.addEventListener("pointermove", onMove)
       hero.addEventListener("pointerleave", onLeave)
-      window.addEventListener("scroll", onScroll, { passive: true })
       raf = requestAnimationFrame(frame)
     }
 
@@ -150,7 +156,6 @@ export default function Hero() {
       io.disconnect()
       hero.removeEventListener("pointermove", onMove)
       hero.removeEventListener("pointerleave", onLeave)
-      window.removeEventListener("scroll", onScroll)
       imgs.forEach((img) => (img.onload = null))
     }
   }, [])
