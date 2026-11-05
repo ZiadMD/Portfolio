@@ -141,6 +141,8 @@ export function createIntro(canvas, image, opts = {}) {
     } catch { invert = false; }
   }
   const glyphs = buildGlyphs(fontFamily);
+  const GSZ = CW * CH, blank = new Uint8Array(glyphs.length / GSZ);         // glyphs with no ink (space)
+  for (let g = 0; g < blank.length; g++) { let s = 0; for (let k = 0; k < GSZ; k++) s += glyphs[g * GSZ + k]; blank[g] = s ? 0 : 1; }
   const ctx = canvas.getContext('2d');
 
   // offscreen canvases (re-sized in layout())
@@ -154,6 +156,8 @@ export function createIntro(canvas, image, opts = {}) {
   let cols = 0, rows = 0, N = 0, W = 0, H = 0, DIAG = 0;
   let cellRand, cellChars, RL, RS, RO, RA;
   let gi, cr, cg, cb, pg, pr, pgc, pb, shown, front, lis, bR, headR, lum8, lumEq;
+  let sR, sG, sB, sampledT = -1e9;                          // sampled photo colours, and when
+  let bI, bRc, bGc, bBc, baseSettled = false;               // portrait glyph + colour per cell, before rain
   let imgData, buf32;
   let NODE, TA, PHI, RR, LK, TL, SLOT, order;
 
@@ -182,6 +186,8 @@ export function createIntro(canvas, image, opts = {}) {
     pg = new Int16Array(N); pr = new Float32Array(N); pgc = new Float32Array(N); pb = new Float32Array(N);
     shown = new Uint8Array(N); front = new Uint8Array(N); lis = new Float32Array(N);
     bR = new Float32Array(N); headR = new Uint8Array(N); lum8 = new Uint8Array(N); lumEq = new Float32Array(N);
+    sR = new Float32Array(N); sG = new Float32Array(N); sB = new Float32Array(N); sampledT = -1e9;
+    bI = new Int16Array(N); bRc = new Float32Array(N); bGc = new Float32Array(N); bBc = new Float32Array(N); baseSettled = false;
     imgData = ctx.createImageData(W, H); buf32 = new Uint32Array(imgData.data.buffer);
 
     // ---- network: 10 random nodes (seeded), everything linked to everything --------------
@@ -311,6 +317,15 @@ export function createIntro(canvas, image, opts = {}) {
     const fit = Math.min(H / sh, W / sw);
     const dh = sh * fit * zoom, dw = dh * imgAspect;
     const dx = W / 2 - cxn * dw, dy = H / 2 - cyn * dh;
+    // Once the story is over (the hero keeps rendering past TOTAL) the portrait is held still: the photo
+    // is sampled and its glyphs worked out once, and only the rain over it moves.
+    const settled = t > TOTAL;
+    const fresh = !settled || sampledT < 0;
+    if (fresh) { samplePhoto(tp, dx, dy, dw, dh); sampledT = t; }
+    if (fresh || !baseSettled) portraitBase(tp, p, cxn, cyn, dw, dh, settled);
+    portraitRain(t, p);
+  }
+  function samplePhoto(tp, dx, dy, dw, dh) {
     pctx.setTransform(1, 0, 0, 1, 0, 0); pctx.fillStyle = invert ? '#fff' : '#000'; pctx.fillRect(0, 0, pc.width, pc.height);
     pctx.setTransform(SS / CW, 0, 0, SS / CH, 0, 0); pctx.imageSmoothingQuality = 'high';
     pctx.drawImage(source, dx, dy, dw, dh);
@@ -323,7 +338,7 @@ export function createIntro(canvas, image, opts = {}) {
     pctx.globalAlpha = 1; pctx.globalCompositeOperation = 'source-over';
     const d = pctx.getImageData(0, 0, pc.width, pc.height).data, pw = pc.width;
     const pulse = 0.5 + 0.5 * Math.sin(tp * 2 * Math.PI * 0.9), rb = 0.2 + 0.45 * pulse;
-    const cellsR = pr, cellsG = pgc, cellsB = pb;
+    const cellsR = sR, cellsG = sG, cellsB = sB;
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
       let R = 0, G = 0, B = 0;
       for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) {
@@ -337,30 +352,47 @@ export function createIntro(canvas, image, opts = {}) {
       lum8[i] = Math.round(clamp(0.299 * cellsR[i] + 0.587 * cellsG[i] + 0.114 * cellsB[i]) * 255);
     }
     clahe(lum8, cols, rows, lumEq);
+  }
+  // each cell's portrait glyph and colour (before rain), and whether it is revealed yet
+  function portraitBase(tp, p, cxn, cyn, dw, dh, settled) {
+    const cellsR = sR, cellsG = sG, cellsB = sB;
 
-    // radial reveal from the eye
+    // radial reveal from the eye (settled: everything is revealed, the front has gone)
     const ex = W / 2 + (eye[0] - cxn) * dw, ey = H / 2 + (eye[1] - cyn) * dh;
     const Rr = 1.25 * DIAG * SM(0.04, 0.58, p);
-    const rainIn = 0.50 * (1 - SM(0.45, 0.95, p)) + 0.10, tint2 = 0.55 * (1 - SM(0.30, 0.85, p));
+    const tint2 = 0.55 * (1 - SM(0.30, 0.85, p));
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-      const i = r * cols + c, cx_ = (c + 0.5) * CW - ex, cy_ = (r + 0.5) * CH - ey;
-      const dd = Math.hypot(cx_, cy_) + (cellRand[i] - 0.5) * 70 + 22 * Math.sin(Math.atan2(cy_, cx_) * 9 + tp * 4);
-      shown[i] = dd < Rr ? 1 : 0;
-      front[i] = (Math.abs(dd - Rr) < 12 && p > 0.04 && Rr < 1.2 * DIAG) ? 1 : 0;
-      if (!shown[i]) continue;
+      const i = r * cols + c;
+      let heat = 0;
+      if (settled) { shown[i] = 1; front[i] = 0; }
+      else {
+        const cx_ = (c + 0.5) * CW - ex, cy_ = (r + 0.5) * CH - ey;
+        const dd = Math.hypot(cx_, cy_) + (cellRand[i] - 0.5) * 70 + 22 * Math.sin(Math.atan2(cy_, cx_) * 9 + tp * 4);
+        shown[i] = dd < Rr ? 1 : 0;
+        front[i] = (Math.abs(dd - Rr) < 12 && p > 0.04 && Rr < 1.2 * DIAG) ? 1 : 0;
+        if (!shown[i]) continue;
+        heat = clamp(1 - (Rr - dd) / 260);
+      }
       let lum = clamp((lumEq[i] / 255 - 0.05) / 0.95) ** 1.6;
       lum = clamp(lum + (cellRand[i] - 0.5) * 0.04);
       const idx = Math.min(NR - 1, Math.floor(lum * (NR - 1)));
-      const heat = clamp(1 - (Rr - dd) / 260);
       let R = clamp(cellsR[i] * 1.4) * 0.82 + lum * 0.18, G = clamp(cellsG[i] * 1.4) * 0.82 + lum * 0.18, B = clamp(cellsB[i] * 1.4) * 0.82 + lum * 0.18;
       R = R * (1 - tint2) + lum * 1.0 * tint2; G = G * (1 - tint2) + lum * 0.18 * tint2; B = B * (1 - tint2) + lum * 0.2 * tint2;
       const hk = heat * (0.35 + lum) * 0.7; R = clamp(R + hk * RED[0]); G = clamp(G + hk * RED[1]); B = clamp(B + hk * RED[2]);
-      // rain falls over the face and thins out
+      bI[i] = idx; bRc[i] = R; bGc[i] = G; bBc[i] = B;
+    }
+    baseSettled = settled;
+  }
+  // rain falls over the face and thins out
+  function portraitRain(t, p) {
+    const rainIn = 0.50 * (1 - SM(0.45, 0.95, p)) + 0.10;
+    for (let i = 0; i < N; i++) {
+      if (!shown[i]) continue;
       const bb = bR[i], hd = headR[i];
       const over = (bb * rainIn > 0.30 && cellRand[i] < 0.8) || (hd && cellRand[i] < rainIn + 0.2);
       const rc0 = hd ? HEADC[0] : bb * RED[0], rc1 = hd ? HEADC[1] : bb * RED[1], rc2 = hd ? HEADC[2] : bb * RED[2];
       if (over) { pg[i] = rainGlyph(i, t); pr[i] = rc0; pgc[i] = rc1; pb[i] = rc2; }
-      else { pg[i] = idx; pr[i] = R + rc0 * 0.25 * rainIn; pgc[i] = G + rc1 * 0.25 * rainIn; pb[i] = B + rc2 * 0.25 * rainIn; }
+      else { pg[i] = bI[i]; pr[i] = bRc[i] + rc0 * 0.25 * rainIn; pgc[i] = bGc[i] + rc1 * 0.25 * rainIn; pb[i] = bBc[i] + rc2 * 0.25 * rainIn; }
     }
   }
 
@@ -371,7 +403,8 @@ export function createIntro(canvas, image, opts = {}) {
     if (ramp > 0 && t < T_P0 + 0.6) s = Math.max(s, ramp * (0.25 + 0.75 * mulberry32(fi * 3 + 1)()));
     s = Math.max(s, 1 - Math.abs(t - T_P0) / 0.35);
     for (const [t0, dd] of PORT_EVENTS) s = Math.max(s, 1 - Math.abs(t - (T_P0 + t0)) / dd);
-    if (mulberry32(fi * 13 + 5)() < 0.06) s = Math.max(s, 0.3);
+    // stray glitches: frequent during the story, rare once it has settled (the hero keeps rendering past TOTAL)
+    if (mulberry32(fi * 13 + 5)() < (t > TOTAL ? 0.008 : 0.06)) s = Math.max(s, 0.3);
     return clamp(s);
   }
   function rollRows(r0, h, sh) {
@@ -389,17 +422,19 @@ export function createIntro(canvas, image, opts = {}) {
     const fi = Math.floor(t * 24);
     const tp = t - T_P0;
 
-    // 1) network -> characters
-    const scene = buildScene(t, fi);
-    actx.setTransform(1, 0, 0, 1, 0, 0); actx.fillStyle = '#000'; actx.fillRect(0, 0, ac.width, ac.height);
-    actx.setTransform(SS / CW, 0, 0, SS / CH, 0, 0);
-    drawScene(actx, scene, false);
-    const ad = actx.getImageData(0, 0, ac.width, ac.height).data, aw = ac.width;
-    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-      let s = 0;
-      for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) s += ad[((r * SS + sy) * aw + c * SS + sx) * 4];
-      lis[r * cols + c] = clamp(s / (255 * SS * SS) * 3.0) ** 0.75;
-    }
+    // 1) network -> characters (long gone once the escape trails have faded)
+    const scene = t < T_ESC1 + 1.5 ? buildScene(t, fi) : null;
+    if (scene) {
+      actx.setTransform(1, 0, 0, 1, 0, 0); actx.fillStyle = '#000'; actx.fillRect(0, 0, ac.width, ac.height);
+      actx.setTransform(SS / CW, 0, 0, SS / CH, 0, 0);
+      drawScene(actx, scene, false);
+      const ad = actx.getImageData(0, 0, ac.width, ac.height).data, aw = ac.width;
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        let s = 0;
+        for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) s += ad[((r * SS + sy) * aw + c * SS + sx) * 4];
+        lis[r * cols + c] = clamp(s / (255 * SS * SS) * 3.0) ** 0.75;
+      }
+    } else lis.fill(0);
 
     // 2) rain + portrait
     rainField(t);
@@ -425,6 +460,24 @@ export function createIntro(canvas, image, opts = {}) {
       gi[i] = g; cr[i] = R; cg[i] = G; cb[i] = B;
     }
 
+    // 4) pointer lens (setPointer; used by the hero): cells near the cursor scramble into hot glyphs
+    ptr.k = ptr.on ? Math.min(1, ptr.k + 0.3) : Math.max(0, ptr.k - 0.12);
+    if (ptr.k > 0.01) {
+      const ks = W / Math.max(1, canvas.clientWidth);
+      const px = ptr.x * ks, py = ptr.y * (H / Math.max(1, canvas.clientHeight)), R = ptr.r * ks;
+      const c0 = Math.max(0, Math.floor((px - R) / CW)), c1 = Math.min(cols - 1, Math.ceil((px + R) / CW));
+      const r0 = Math.max(0, Math.floor((py - R) / CH)), r1 = Math.min(rows - 1, Math.ceil((py + R) / CH));
+      for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+        const d = Math.hypot((c + 0.5) * CW - px, (r + 0.5) * CH - py);
+        if (d >= R) continue;
+        const i = r * cols + c, f = (1 - d / R) * ptr.k;
+        if (cellRand[i] > f * 1.15) continue;
+        const v = Math.max(cr[i], cg[i], cb[i]), hot = f * f;
+        gi[i] = NR + (cellChars[i] + fi * 2 + c) % NRN;
+        cr[i] = Math.max(v, 0.35 + 0.65 * f); cg[i] = RED[1] + 0.7 * hot; cb[i] = RED[2] + 0.7 * hot;
+      }
+    }
+
     // 5) glitches
     const s = glitchStrength(t, fi);
     if (s > 0) {
@@ -448,7 +501,7 @@ export function createIntro(canvas, image, opts = {}) {
     const gsz = CW * CH;
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
       const i = r * cols + c, R = cr[i] * fade, G = cg[i] * fade, B = cb[i] * fade;
-      if (R + G + B < 4) continue;
+      if (R + G + B < 4 || blank[gi[i]]) continue;
       const base = gi[i] * gsz;
       for (let ky = 0; ky < CH; ky++) {
         const sl = (ky & 1) ? 1 : 0.93, o = (r * CH + ky) * W + c * CW;
@@ -474,7 +527,7 @@ export function createIntro(canvas, image, opts = {}) {
 
     // 7) soft red glow over the live network
     const gk = 1 - SM(T_P0, T_P0 + 1.5, t);
-    if (gk > 0.01) {
+    if (gk > 0.01 && scene) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = gk;
       ctx.shadowColor = 'rgba(255,40,50,0.9)'; ctx.shadowBlur = 18;
       drawScene(ctx, scene, true);
@@ -482,10 +535,18 @@ export function createIntro(canvas, image, opts = {}) {
     }
   }
 
+  // pointer lens state: css px over the canvas, radius in css px, k eases in/out
+  const ptr = { x: 0, y: 0, r: opts.pointerRadius || 70, on: false, k: 0 };
+
   layout();
   return {
     renderAt,
     resize() { layout(); },
+    /** Cursor position in css px over the canvas, or null when it leaves. */
+    setPointer(x, y) {
+      if (x == null) { ptr.on = false; return; }
+      ptr.x = x; ptr.y = y; ptr.on = true;
+    },
     get size() { return { cols, rows, W, H }; },
   };
 }

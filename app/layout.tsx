@@ -384,7 +384,7 @@ export default function RootLayout({
             // Before first paint: mark JS on, remember a seen intro, and put
             // the page into the intro screen (unless reduced motion). If the
             // app never takes over, release the page after 4s anyway.
-            __html: `(function(){var d=document.documentElement;d.classList.add('js');try{if(localStorage.getItem('zs-intro-seen'))d.classList.add('intro-seen');localStorage.removeItem('zs-theme');d.dataset.theme='dark';}catch(e){}try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches){d.dataset.introState='playing';setTimeout(function(){if(!d.classList.contains('intro-live'))delete d.dataset.introState},4000)}}catch(e){}})();`,
+            __html: `(function(){var d=document.documentElement;d.classList.add('js');try{localStorage.removeItem('zs-intro-seen');localStorage.removeItem('zs-theme');d.dataset.theme='dark';}catch(e){}try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches){d.dataset.introState='playing';setTimeout(function(){if(!d.classList.contains('intro-live'))delete d.dataset.introState},4000)}}catch(e){}})();`,
           }}
         />
         <script
