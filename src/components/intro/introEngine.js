@@ -279,17 +279,65 @@ export function createIntro(canvas, image, opts = {}) {
     }
     return { lines, dots };
   }
+  // glow: false = white source lines; true = the red glow strokes; 'halo' = the glow's blur source,
+  // in the colour the glow's soft halo had (rgba(255,40,50,0.9) x the stroke's alpha)
   function drawScene(g, sc, glow) {
+    const halo = glow === 'halo';
     g.lineCap = 'round';
     for (const [x1, y1, x2, y2, w, a] of sc.lines) {
-      g.strokeStyle = glow ? `rgba(255,50,60,${a * 0.28})` : `rgba(255,255,255,${a})`;
+      g.strokeStyle = halo ? `rgba(255,40,50,${a * 0.28 * 0.9})` : glow ? `rgba(255,50,60,${a * 0.28})` : `rgba(255,255,255,${a})`;
       g.lineWidth = glow ? w * 1.2 : w;
       g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
     }
     for (const [x, y, r, a] of sc.dots) {
-      g.fillStyle = glow ? `rgba(255,60,70,${a * 0.6})` : `rgba(255,255,255,${a})`;
+      g.fillStyle = halo ? `rgba(255,40,50,${a * 0.6 * 0.9})` : glow ? `rgba(255,60,70,${a * 0.6})` : `rgba(255,255,255,${a})`;
       g.beginPath(); g.arc(x, y, glow ? r * 1.4 : r, 0, 6.2832); g.fill();
     }
+  }
+
+  // ---- soft glow: the network is painted once onto a small layer, blurred once, and added on top.
+  // (It used canvas shadowBlur, which blurs every line separately: up to ~190 blurs a frame.)
+  const GLOW_DIV = 4, GLOW_SIGMA = 9;                      // layer scale; blur, in canvas pixels
+  const canFilter = (() => { try { const t = document.createElement('canvas').getContext('2d'); t.filter = 'blur(1px)'; return t.filter === 'blur(1px)'; } catch { return false; } })();
+  const gl1 = document.createElement('canvas'), gl2 = document.createElement('canvas');
+  const g1 = gl1.getContext('2d'), g2 = gl2.getContext('2d');
+  function drawGlow(sc, alpha) {
+    const w = Math.max(2, Math.ceil(W / GLOW_DIV)), h = Math.max(2, Math.ceil(H / GLOW_DIV));
+    if (gl1.width !== w || gl1.height !== h) { gl1.width = gl2.width = w; gl1.height = gl2.height = h; }
+    g1.setTransform(1, 0, 0, 1, 0, 0); g1.globalCompositeOperation = 'source-over'; g1.clearRect(0, 0, w, h);
+    g1.globalCompositeOperation = 'lighter';
+    g1.setTransform(1 / GLOW_DIV, 0, 0, 1 / GLOW_DIV, 0, 0);
+    drawScene(g1, sc, 'halo');
+    let soft = gl1;
+    g2.setTransform(1, 0, 0, 1, 0, 0); g2.globalCompositeOperation = 'source-over'; g2.clearRect(0, 0, w, h);
+    if (canFilter) {
+      g2.filter = `blur(${GLOW_SIGMA / GLOW_DIV}px)`; g2.drawImage(gl1, 0, 0); g2.filter = 'none'; soft = gl2;
+    } else {
+      // no canvas filter (older Safari): shrink further and let the upscale smooth it
+      const k = 3, ws = Math.max(1, Math.round(w / k)), hs = Math.max(1, Math.round(h / k));
+      g2.drawImage(gl1, 0, 0, ws, hs);
+      g2.globalCompositeOperation = 'copy'; g2.drawImage(gl2, 0, 0, ws, hs, 0, 0, w, h); soft = gl2;
+    }
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha;
+    ctx.imageSmoothingEnabled = true; ctx.drawImage(soft, 0, 0, w * GLOW_DIV, h * GLOW_DIV);
+    drawScene(ctx, sc, true);                               // the crisp red strokes on top, as before
+    ctx.restore();
+  }
+
+  // ---- chromatic split on glitch frames: red shifted right, blue left, done by the canvas.
+  let rgbR = null, rgbB = null;
+  function splitRGB(sp) {
+    if (!rgbR) { rgbR = document.createElement('canvas'); rgbB = document.createElement('canvas'); }
+    for (const [cv, col] of [[rgbR, '#f00'], [rgbB, '#00f']]) {
+      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+      const g = cv.getContext('2d');
+      g.globalCompositeOperation = 'copy'; g.drawImage(canvas, 0, 0);
+      g.globalCompositeOperation = 'multiply'; g.fillStyle = col; g.fillRect(0, 0, W, H);
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#0f0'; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(rgbR, sp, 0); ctx.drawImage(rgbB, -sp, 0);
+    ctx.restore();
   }
 
   // ------------------------------------------------------------------- rain -------------
@@ -512,27 +560,12 @@ export function createIntro(canvas, image, opts = {}) {
         }
       }
     }
-    if (s > 0.2) {                                         // chromatic split on glitch frames
-      const sp = 1 + Math.floor(7 * s), row = new Uint32Array(W);
-      for (let y = 0; y < H; y++) {
-        const o = y * W;
-        for (let x = 0; x < W; x++) {
-          const xr = x - sp < 0 ? 0 : x - sp, xb = x + sp >= W ? W - 1 : x + sp;
-          row[x] = 0xFF000000 | ((buf32[o + xb] & 0x00FF0000)) | (buf32[o + x] & 0x0000FF00) | (buf32[o + xr] & 0x000000FF);
-        }
-        buf32.set(row, o);
-      }
-    }
     ctx.putImageData(imgData, 0, 0);
+    if (s > 0.2) splitRGB(1 + Math.floor(7 * s));          // chromatic split on glitch frames
 
     // 7) soft red glow over the live network
     const gk = 1 - SM(T_P0, T_P0 + 1.5, t);
-    if (gk > 0.01 && scene) {
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = gk;
-      ctx.shadowColor = 'rgba(255,40,50,0.9)'; ctx.shadowBlur = 18;
-      drawScene(ctx, scene, true);
-      ctx.restore();
-    }
+    if (gk > 0.01 && scene) drawGlow(scene, gk);
   }
 
   // pointer lens state: css px over the canvas, radius in css px, k eases in/out
