@@ -16,38 +16,27 @@ export type Photo = typeof DESKTOP
 export type Framing = { endZoom: number; endCenterX: number; endCenterY: number }
 
 /**
- * Phones frame the face closer than a whole-photo fit: at that size the
- * face is only ~25 characters wide. 1 = whole photo.
+ * Phones: how close the portrait is (1 = the photo fills the screen width)
+ * and how far down the hero the eyes sit (0 = top, 1 = bottom). 1.45 / 0.3
+ * shows head, shoulders and chest above the name.
  */
-const MOBILE_END_ZOOM = 1.8
+const MOBILE_END_ZOOM = 1.45
+const MOBILE_EYE_Y = 0.3
 
 /**
- * The portrait's box on a W x H hero (css px). Desktop: bottom-anchored,
- * up to 82% of the height, the face slightly left of centre so the name
- * reads beside it. Phone: centred, above the marquee.
+ * The desktop portrait's box on a W x H hero (css px): bottom-anchored, up
+ * to 82% of the height, the face slightly left of centre so the name reads
+ * beside it.
  */
-export function heroPhotoRect(W: number, H: number, mobile: boolean, ia: number) {
-  let hh: number
-  let x: number
-  let y: number
-  if (mobile) {
-    const maxVisibleW = Math.min(W * 0.86, 380)
-    const maxVisibleH = H * 0.65
-    const targetVisibleH = Math.min(maxVisibleW / 0.843, maxVisibleH)
-    hh = targetVisibleH / 0.9514
-    x = W / 2 - (hh * ia) / 2
-    y = H - 38 - hh
-  } else {
-    const targetVisibleH = Math.min(H * 0.82, 820)
-    const maxVisibleW = W * 0.78
-    const visibleW = targetVisibleH * 1.077
-    const effectiveVisibleH =
-      visibleW > maxVisibleW ? maxVisibleW / 1.077 : targetVisibleH
-    hh = effectiveVisibleH / 0.9505
-    x = W / 2 - hh * ia * (1414 / 2752)
-    y = H - hh
-  }
-  return { x, y, w: hh * ia, h: hh }
+export function heroPhotoRect(W: number, H: number, ia: number) {
+  const targetVisibleH = Math.min(H * 0.82, 820)
+  const maxVisibleW = W * 0.78
+  const visibleW = targetVisibleH * 1.077
+  const effectiveVisibleH =
+    visibleW > maxVisibleW ? maxVisibleW / 1.077 : targetVisibleH
+  const hh = effectiveVisibleH / 0.9505
+  const x = W / 2 - hh * ia * (1414 / 2752)
+  return { x, y: H - hh, w: hh * ia, h: hh }
 }
 
 /**
@@ -56,8 +45,7 @@ export function heroPhotoRect(W: number, H: number, mobile: boolean, ia: number)
  * engine, zoom 1 fits the whole photo in the canvas, and endCenter is the
  * photo point that ends at the canvas centre.
  * - Desktop: the photo fills heroPhotoRect.
- * - Phone: closer (MOBILE_END_ZOOM), eyes at the height heroPhotoRect puts
- *   them.
+ * - Phone: MOBILE_END_ZOOM, centred, eyes MOBILE_EYE_Y down the hero.
  */
 export function framingFor(
   photo: Photo,
@@ -66,17 +54,16 @@ export function framingFor(
   vh: number,
   heroH = vh,
 ): Framing {
-  const r = heroPhotoRect(vw, heroH, mobile, photo.w / photo.h)
   const fit = Math.min(vh / photo.h, vw / photo.w)
   if (mobile) {
     const dh = photo.h * fit * MOBILE_END_ZOOM
-    const heroEyeY = r.y + photo.eye[1] * r.h
     return {
       endZoom: MOBILE_END_ZOOM,
       endCenterX: photo.eye[0],
-      endCenterY: photo.eye[1] - (heroEyeY - vh / 2) / dh,
+      endCenterY: photo.eye[1] - (heroH * MOBILE_EYE_Y - vh / 2) / dh,
     }
   }
+  const r = heroPhotoRect(vw, heroH, photo.w / photo.h)
   return {
     endZoom: r.h / (photo.h * fit),
     endCenterX: (vw / 2 - r.x) / r.w,

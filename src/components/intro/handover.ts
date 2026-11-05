@@ -166,37 +166,57 @@ export function formText(
   delayAt?: (el: HTMLElement) => number,
   onDone?: () => void,
 ): () => void {
-  const items: Forming[] = []
+  const list: FormTarget[] = []
   const seen = new Set<Element>()
   for (const grp of groups) {
     document.querySelectorAll<HTMLElement>(grp.selector).forEach((el, k) => {
       if (seen.has(el) || !el.offsetParent) return
       seen.add(el)
       const start = grp.delay + (delayAt ? delayAt(el) : k * 0.03)
-      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
-        acceptNode: (t) =>
-          t.nodeValue?.trim() && !t.parentElement?.closest("time, script, style")
-            ? NodeFilter.FILTER_ACCEPT
-            : NodeFilter.FILTER_REJECT,
-      })
-      const nodes: Forming["nodes"] = []
-      let total = 0
-      for (let t = walker.nextNode(); t; t = walker.nextNode()) {
-        total += (t as Text).nodeValue!.length
-        nodes.push({ node: t as Text, orig: (t as Text).nodeValue!, at: new Float32Array(0) })
-      }
-      if (!nodes.length) return
-      // Each character resolves at its moment, roughly left to right.
-      let idx = 0
-      for (const nd of nodes) {
-        nd.at = new Float32Array(nd.orig.length)
-        for (let i = 0; i < nd.orig.length; i++, idx++) {
-          nd.at[i] =
-            start + grp.duration * (0.75 * (idx / Math.max(1, total)) + 0.25 * Math.random())
-        }
-      }
-      items.push({ el, nodes, end: start + grp.duration })
+      list.push({ el, start, duration: grp.duration })
     })
+  }
+  return formElements(list, onDone)
+}
+
+export interface FormTarget {
+  el: HTMLElement
+  /** Seconds from now until it starts resolving. */
+  start: number
+  /** Seconds to resolve. */
+  duration: number
+}
+
+/** formText for a given list of elements (see formText). */
+export function formElements(
+  targets: FormTarget[],
+  onDone?: () => void,
+): () => void {
+  const items: Forming[] = []
+  for (const { el, start, duration } of targets) {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+      acceptNode: (t) =>
+        t.nodeValue?.trim() && !t.parentElement?.closest("time, script, style")
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT,
+    })
+    const nodes: Forming["nodes"] = []
+    let total = 0
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+      total += (t as Text).nodeValue!.length
+      nodes.push({ node: t as Text, orig: (t as Text).nodeValue!, at: new Float32Array(0) })
+    }
+    if (!nodes.length) continue
+    // Each character resolves at its moment, roughly left to right.
+    let idx = 0
+    for (const nd of nodes) {
+      nd.at = new Float32Array(nd.orig.length)
+      for (let i = 0; i < nd.orig.length; i++, idx++) {
+        nd.at[i] =
+          start + duration * (0.75 * (idx / Math.max(1, total)) + 0.25 * Math.random())
+      }
+    }
+    items.push({ el, nodes, end: start + duration })
   }
 
   const t0 = performance.now()

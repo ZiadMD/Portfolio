@@ -490,6 +490,10 @@ em {
   align-items: center;
   gap: 8px;
 }
+/* Phones: no status line over the portrait. */
+@media (max-width: 767.98px) {
+  #hero .st { display: none; }
+}
 .st i, .beacon-dot {
   width: 7px;
   height: 7px;
@@ -805,14 +809,32 @@ h2, .big {
 .row img.m {
   display: none;
 }
-.row:hover {
-  opacity: 0.7;
+/* Touch screens and phones have no hover preview (#peek), so each project
+   row shows its image as a card picture above the title. */
+@media (hover: none), (max-width: 768px) {
+  .row img.m {
+    display: block;
+    order: -1;
+    grid-column: 1 / -1;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    margin-bottom: 10px;
+    background: var(--panel);
+  }
 }
-.row:hover b {
-  transform: translateX(-15px);
-}
-.row:hover .g {
-  transform: translateX(15px);
+/* Mouse only: on touch screens :hover sticks after a tap. */
+@media (hover: hover) {
+  .row:hover {
+    opacity: 0.7;
+  }
+  .row:hover b {
+    transform: translateX(-15px);
+  }
+  .row:hover .g {
+    transform: translateX(15px);
+  }
 }
 
 #more {

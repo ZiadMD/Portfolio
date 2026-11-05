@@ -352,6 +352,15 @@ export default function Work({ lenisRef }: WorkProps) {
         <small>{project.subtitle}</small>
       </span>
       <span className="g">{project.tech.slice(0, 3).join(" · ")}</span>
+      {imgFor(project) && (
+        <img
+          className="m"
+          src={imgFor(project)}
+          alt=""
+          loading="lazy"
+          decoding="async"
+        />
+      )}
     </button>
   )
 
