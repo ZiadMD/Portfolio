@@ -637,6 +637,26 @@ html[data-intro-state="playing"] .intro-gate {
   pointer-events: auto;
   transition: none;
 }
+/* Handover: the intro's last frame is copied onto .intro-dissolve, which
+   clears cell by cell onto the hero (src/components/intro/handover.ts).
+   The black layer goes at once; scrolling stays locked until it is done. */
+html[data-intro-state="handover"] .intro-gate {
+  transition: none;
+}
+html[data-intro-state="handover"],
+html[data-intro-state="handover"] body {
+  overflow: hidden;
+}
+.intro-dissolve {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  visibility: hidden;
+}
 
 /* Intro screen. While html[data-intro-state="playing"] is set (from the
    pre-paint script in layout.tsx until the intro finishes), the

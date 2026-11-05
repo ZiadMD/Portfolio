@@ -9,12 +9,17 @@
  *   ruler and chrome are hidden and scrolling is locked. The gate's black
  *   layer is only visible in that state (see globals.css, "ASCII intro"),
  *   so nothing of the site flashes before the intro mounts.
- * - When the intro finishes (or is skipped, or fails), the state is cleared:
- *   the layer fades out over ~600ms onto the hero, the chrome fades in, and
- *   scrolling is unlocked. The intro is unmounted after the fade.
- * - The intro's last frame is framed to sit exactly where the hero photo is
- *   drawn (heroPhotoRect mirrors Hero.tsx buildPhoto), so the fade lands on
- *   the same portrait.
+ * - Handover (see handover.ts): when the intro finishes or is skipped, its
+ *   last ASCII frame is frozen and dissolves cell by cell outwards from the
+ *   eye, revealing the hero, while the hero's text (name, nav, status line,
+ *   marquee) forms out of red glyph noise. The page is in
+ *   html[data-intro-state="handover"] meanwhile: chrome visible, scrolling
+ *   still locked. Then the state clears and scrolling unlocks.
+ * - If the intro fails (e.g. the photo does not load), the layer just fades
+ *   out (~600ms) and the page unlocks.
+ * - The intro's last frame is framed to sit where the hero photo is drawn
+ *   (heroPhotoRect mirrors Hero.tsx buildPhoto), so the dissolve reveals the
+ *   same portrait.
  * - It plays on every visit. The hero's "Replay intro" button dispatches
  *   INTRO_REPLAY_EVENT to play it again.
  * - Reduced motion: the pre-paint script never sets the state; no intro.
@@ -24,10 +29,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import AsciiIntro from "./AsciiIntro"
 import { DESKTOP_PHOTO_SRC, MOBILE_PHOTO_SRC } from "../../data/photoSrc"
 import { lenisRef } from "../../lib/lenis-ref"
+import { dissolveFrame, formText } from "./handover"
 
 export const INTRO_REPLAY_EVENT = "zs:intro-replay"
 
-/** Must match the layer's opacity transition in globals.css. */
+/** Must match the layer's opacity transition in globals.css (error path). */
 const FADE_MS = 600
 const MOBILE_QUERY = "(max-width: 767.98px)" // Hero.tsx switches at 768px
 
@@ -104,6 +110,31 @@ function framingFor(photo: Photo, mobile: boolean): Framing {
   }
 }
 
+/** Seconds for the ASCII frame to dissolve into the hero. */
+const DISSOLVE_S = 1.4
+
+/** The hero text that forms out of glyphs, in order of appearance. */
+// Each element starts forming just before the dissolve uncovers it; `delay`
+// shifts that moment (negative = earlier).
+const FORM_GROUPS = [
+  { selector: "#hero .cap h1", delay: -0.15, duration: 1.0 },
+  { selector: "#hero .hud", delay: -0.1, duration: 0.7 },
+  { selector: ".nav .nl a, .nav .cv, .nav .menu-btn", delay: -0.1, duration: 0.6 },
+  { selector: "#replay .lbl-replay", delay: -0.05, duration: 0.5 },
+  { selector: ".mqh span", delay: -0.1, duration: 0.6 },
+]
+
+/** Where the photo's eye sits on screen (css px) in the intro's last frame. */
+function eyeOnScreen(photo: Photo, f: Framing) {
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const s = Math.min(vh / photo.h, vw / photo.w) * f.endZoom
+  return {
+    x: vw / 2 + (photo.eye[0] - f.endCenterX) * photo.w * s,
+    y: vh / 2 + (photo.eye[1] - f.endCenterY) * photo.h * s,
+  }
+}
+
 export default function IntroGate() {
   // `run` remounts the intro on replay; null = no intro mounted.
   const [run, setRun] = useState<number | null>(null)
@@ -114,6 +145,13 @@ export default function IntroGate() {
   // Whether an intro is on screen. A ref, so it survives React's dev
   // StrictMode remount (whose cleanup clears the html intro state).
   const activeRef = useRef<boolean | null>(null)
+  const failedRef = useRef(false)
+  const dissolveRef = useRef<HTMLCanvasElement>(null)
+  // Running handover effects, and a token so a cancelled one is ignored.
+  const handoverRef = useRef<{ token: number; cancel: () => void }>({
+    token: 0,
+    cancel: () => {},
+  })
 
   const measure = useCallback(() => {
     setFraming({
@@ -132,6 +170,13 @@ export default function IntroGate() {
       delete root.dataset.introState
       lenisRef.current?.start()
     }
+  }, [])
+
+  /** Stop a running handover and restore the page text. */
+  const stopHandover = useCallback(() => {
+    handoverRef.current.token++
+    handoverRef.current.cancel()
+    handoverRef.current.cancel = () => {}
   }, [])
 
   // First visit of this page load: play if the pre-paint script put the
@@ -162,6 +207,8 @@ export default function IntroGate() {
 
     const onReplay = () => {
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+      stopHandover()
+      failedRef.current = false
       measure()
       activeRef.current = true
       lockPage(true)
@@ -181,22 +228,52 @@ export default function IntroGate() {
       window.removeEventListener(INTRO_REPLAY_EVENT, onReplay)
       window.removeEventListener("resize", onResize)
       window.clearTimeout(rt)
+      stopHandover()
       // Never leave the page locked behind the intro.
       delete root.dataset.introState
     }
-  }, [lockPage, measure])
+  }, [lockPage, measure, stopHandover])
 
-  // Handover: fade onto the hero, unlock the page, then unmount the intro.
+  // Handover: dissolve the last frame into the hero while its text forms,
+  // then unlock the page. The intro itself is unmounted straight away.
   const onFinish = useCallback(() => {
     if (debugTime !== undefined) return
     activeRef.current = false
-    lockPage(false)
     const finished = run
-    window.setTimeout(() => {
-      // Unmount only if no replay started during the fade.
-      setRun((cur) => (cur === finished ? null : cur))
-    }, FADE_MS + 50)
-  }, [debugTime, lockPage, run])
+    const unmount = () => setRun((cur) => (cur === finished ? null : cur))
+
+    const source = document.querySelector<HTMLCanvasElement>(".intro-gate canvas")
+    const target = dissolveRef.current
+    if (failedRef.current || !source || !target || !framing) {
+      // Nothing to dissolve: fade the layer out.
+      lockPage(false)
+      window.setTimeout(unmount, FADE_MS + 50)
+      return
+    }
+
+    const mobile = window.matchMedia(MOBILE_QUERY).matches
+    const eye = eyeOnScreen(mobile ? MOBILE : DESKTOP, mobile ? framing.m : framing.d)
+    const token = ++handoverRef.current.token
+    document.documentElement.dataset.introState = "handover"
+    const dissolve = dissolveFrame(source, target, {
+      eyeX: eye.x,
+      eyeY: eye.y,
+      duration: DISSOLVE_S,
+      onDone: () => {
+        if (handoverRef.current.token !== token) return
+        lockPage(false)
+      },
+    })
+    const stopText = formText(FORM_GROUPS, (el) => {
+      const r = el.getBoundingClientRect()
+      return Math.max(0, dissolve.timeAt(r.left + r.width / 2, r.top + r.height / 2))
+    })
+    handoverRef.current.cancel = () => {
+      dissolve.cancel()
+      stopText()
+    }
+    unmount()
+  }, [debugTime, framing, lockPage, run])
 
   const variants = useMemo(
     () =>
@@ -207,19 +284,23 @@ export default function IntroGate() {
   )
 
   return (
-    <div className="intro-gate" aria-hidden={run === null}>
-      {run !== null && framing && (
-        <AsciiIntro
-          key={run}
-          src={DESKTOP.src}
-          eye={DESKTOP.eye}
-          {...framing.d}
-          variants={variants}
-          audioSrc={debugTime === undefined ? "/intro.mp3" : undefined}
-          debugTime={debugTime}
-          onFinish={onFinish}
-        />
-      )}
-    </div>
+    <>
+      <div className="intro-gate" aria-hidden={run === null}>
+        {run !== null && framing && (
+          <AsciiIntro
+            key={run}
+            src={DESKTOP.src}
+            eye={DESKTOP.eye}
+            {...framing.d}
+            variants={variants}
+            audioSrc={debugTime === undefined ? "/intro.mp3" : undefined}
+            debugTime={debugTime}
+            onError={() => (failedRef.current = true)}
+            onFinish={onFinish}
+          />
+        )}
+      </div>
+      <canvas className="intro-dissolve" ref={dissolveRef} aria-hidden="true" />
+    </>
   )
 }
