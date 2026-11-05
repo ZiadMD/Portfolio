@@ -10,6 +10,7 @@
     "format": "oxfmt app src"
   },
   "dependencies": {
+    "ascii-reveal": "^0.3.0",
     "gsap": "^3.15.0",
     "lenis": "^1.1.20",
     "motion": "^14.9.0",

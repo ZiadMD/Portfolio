@@ -11,6 +11,7 @@ import {
 import { Project } from "../../types/portfolio"
 import { useReveal } from "../../lib/use-reveal"
 import SplitHeading from "../ui/SplitHeading"
+import AsciiImg from "../ui/AsciiImg"
 
 /**
  * Title card for a project that has no screenshot yet: drawn from the
@@ -118,9 +119,13 @@ type OriginPoint = { x: number; y: number; width: number }
 
 const SEL = 3
 
+/** Every project row, in page order: the hover preview's image strip. */
+const PEEK_PROJECTS = [...FEATURED_PROJECTS, ...WORKING_ON_NOW_PROJECTS]
+
 export default function Work({ lenisRef }: WorkProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const nowListRef = useRef<HTMLDivElement>(null)
   const peekRef = useRef<HTMLDivElement>(null)
   const stripRef = useRef<HTMLDivElement>(null)
   const winRef = useRef<HTMLDivElement>(null)
@@ -141,7 +146,6 @@ export default function Work({ lenisRef }: WorkProps) {
   const initialProjects = useMemo(() => FEATURED_PROJECTS.slice(0, SEL), [])
   const extraProjects = useMemo(() => FEATURED_PROJECTS.slice(SEL), [])
   const imgFor = (p: Project) => p.img || art[p.id] || ""
-  const thumbFor = (p: Project) => p.img || art[`${p.id}-plain`] || ""
 
   useReveal(sectionRef)
 
@@ -154,7 +158,6 @@ export default function Work({ lenisRef }: WorkProps) {
       PROJECTS.forEach((p) => {
         if (p.img) return
         next[p.id] = drawTitleCard(p)
-        if (p.isWorkingOnNow) next[`${p.id}-plain`] = drawTitleCard(p, false)
       })
       setArt(next)
     }
@@ -165,12 +168,14 @@ export default function Work({ lenisRef }: WorkProps) {
     }
   }, [])
 
-  // Floating preview that follows a mouse pointer over the project list.
+  // Floating preview that follows a mouse pointer over the project lists.
   useEffect(() => {
-    const list = listRef.current
+    const lists = [listRef.current, nowListRef.current].filter(
+      (l): l is HTMLDivElement => !!l,
+    )
     const pk = peekRef.current
     const strip = stripRef.current
-    if (!list || !pk || !strip) return
+    if (!lists.length || !pk || !strip) return
 
     let tx = 0
     let ty = 0
@@ -207,7 +212,7 @@ export default function Work({ lenisRef }: WorkProps) {
       st = i >= 0 ? 1 : 0
       if (i < 0) return
 
-      const y = `translateY(${-i * (100 / FEATURED_PROJECTS.length)}%)`
+      const y = `translateY(${-i * (100 / PEEK_PROJECTS.length)}%)`
       if (was < 0) {
         qx = tx
         qy = ty
@@ -242,13 +247,17 @@ export default function Work({ lenisRef }: WorkProps) {
     }
     const onPointerLeave = () => pick(-1)
 
-    list.addEventListener("pointermove", onPointerMove)
-    list.addEventListener("pointerleave", onPointerLeave)
+    lists.forEach((l) => {
+      l.addEventListener("pointermove", onPointerMove)
+      l.addEventListener("pointerleave", onPointerLeave)
+    })
 
     return () => {
       cancelAnimationFrame(animId)
-      list.removeEventListener("pointermove", onPointerMove)
-      list.removeEventListener("pointerleave", onPointerLeave)
+      lists.forEach((l) => {
+        l.removeEventListener("pointermove", onPointerMove)
+        l.removeEventListener("pointerleave", onPointerLeave)
+      })
     }
   }, [])
 
@@ -331,7 +340,11 @@ export default function Work({ lenisRef }: WorkProps) {
     }
   }
 
-  const renderProjectRow = (project: Project, index: number) => (
+  const renderProjectRow = (
+    project: Project,
+    index: number,
+    inDev = false,
+  ) => (
     <button
       key={project.id}
       type="button"
@@ -349,18 +362,19 @@ export default function Work({ lenisRef }: WorkProps) {
     >
       <span>
         <b>{project.title}</b>
-        <small>{project.subtitle}</small>
+        <small>
+          {inDev && (
+            <span className="dev">
+              <span className="pulse-dot" aria-hidden="true" />
+              In development
+            </span>
+          )}
+          {inDev && " · "}
+          {project.subtitle}
+        </small>
       </span>
       <span className="g">{project.tech.slice(0, 3).join(" · ")}</span>
-      {imgFor(project) && (
-        <img
-          className="m"
-          src={imgFor(project)}
-          alt=""
-          loading="lazy"
-          decoding="async"
-        />
-      )}
+      {imgFor(project) && <AsciiImg className="m" src={imgFor(project)} />}
     </button>
   )
 
@@ -453,101 +467,16 @@ export default function Work({ lenisRef }: WorkProps) {
           </p>
         </div>
 
-        <div className="now-grid">
-          {WORKING_ON_NOW_PROJECTS.map((project) => {
-            const imgSrc = thumbFor(project)
-            const open = (opener: HTMLElement, card: HTMLElement) =>
-              openModal(
-                project,
-                opener,
-                centreOf(card.querySelector(".now-card-thumb") || card),
-              )
-            return (
-              <motion.article
-                key={project.id}
-                className="now-card"
-                whileHover={{
-                  y: -5,
-                  transition: { duration: 0.2, ease: "easeOut" },
-                }}
-                onClick={(e) => {
-                  // Mouse convenience: the whole card opens the details.
-                  if ((e.target as HTMLElement).closest("a, button")) return
-                  const card = e.currentTarget
-                  const btn =
-                    card.querySelector<HTMLElement>(".now-card-action") || card
-                  open(btn, card)
-                }}
-              >
-                <div className="now-card-thumb">
-                  {imgSrc && (
-                    <img
-                      src={imgSrc}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className={project.img ? undefined : "art"}
-                    />
-                  )}
-                  <div className="now-card-status">
-                    <span className="pulse-dot" aria-hidden="true" />
-                    <span>In development</span>
-                  </div>
-                </div>
-
-                <div className="now-card-body">
-                  <span className="now-card-cat">{project.category}</span>
-                  <h4 className="now-card-title">{project.title}</h4>
-                  <p className="now-card-sub">{project.subtitle}</p>
-                  <p className="now-card-desc">{project.description}</p>
-                  {project.note && (
-                    <p className="now-card-note">{project.note}</p>
-                  )}
-                  <div className="now-card-tags">
-                    {project.tech.map((t) => (
-                      <span key={t}>{t}</span>
-                    ))}
-                  </div>
-                  <div className="now-card-footer">
-                    <button
-                      type="button"
-                      className="now-card-action"
-                      aria-haspopup="dialog"
-                      onClick={(e) =>
-                        open(
-                          e.currentTarget,
-                          e.currentTarget.closest(".now-card") as HTMLElement,
-                        )
-                      }
-                    >
-                      View details
-                      <span className="sr-only"> about {project.title}</span>
-                    </button>
-                    {project.githubUrl && (
-                      <a
-                        href={project.githubUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="now-card-gh"
-                      >
-                        GitHub
-                        <span className="sr-only">
-                          {" "}
-                          repository for {project.title} (opens in new tab)
-                        </span>
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </motion.article>
-            )
-          })}
+        <div id="nowList" className="rv" ref={nowListRef}>
+          {WORKING_ON_NOW_PROJECTS.map((p, idx) =>
+            renderProjectRow(p, FEATURED_PROJECTS.length + idx, true),
+          )}
         </div>
       </div>
 
       <div id="peek" ref={peekRef} aria-hidden="true">
         <div id="strip" ref={stripRef}>
-          {FEATURED_PROJECTS.map((p) => (
+          {PEEK_PROJECTS.map((p) => (
             <img key={p.id} src={imgFor(p) || undefined} alt="" />
           ))}
         </div>
@@ -668,7 +597,7 @@ export default function Work({ lenisRef }: WorkProps) {
                 <div id="wbody">
                   <div className="wimg-wrap">
                     {imgFor(selectedProject) && (
-                      <img src={imgFor(selectedProject)} alt="" />
+                      <AsciiImg src={imgFor(selectedProject)} />
                     )}
                   </div>
                   <motion.div

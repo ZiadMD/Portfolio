@@ -768,9 +768,30 @@ h2, .big {
   color: var(--soft);
 }
 
-#list {
+#list,
+#nowList {
   margin-top: 4vh;
   border-top: 1px solid var(--line);
+}
+/* "In development" marker in the Working on now rows. */
+.row .dev {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--fg);
+}
+/* Images that load in ASCII (ui/AsciiImg.tsx): the wrapper is the box. */
+.ascii-img {
+  display: block;
+  position: relative;
+  --ascii-accent: var(--acc);
+  --ascii-font: var(--mono);
+}
+.ascii-img > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .row {
   display: grid;
@@ -806,19 +827,18 @@ h2, .big {
   text-align: right;
   transition: transform 0.5s ease;
 }
-.row img.m {
+.row .m {
   display: none;
 }
 /* Touch screens and phones have no hover preview (#peek), so each project
    row shows its image as a card picture above the title. */
 @media (hover: none), (max-width: 768px) {
-  .row img.m {
+  .row .m {
     display: block;
     order: -1;
     grid-column: 1 / -1;
     width: 100%;
     aspect-ratio: 16 / 10;
-    object-fit: cover;
     border: 1px solid var(--line);
     margin-bottom: 10px;
     background: var(--panel);
@@ -983,11 +1003,9 @@ h2, .big {
   position: relative;
   overflow: hidden;
 }
-.wimg-wrap > img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+.wimg-wrap > .ascii-img {
+  position: absolute;
+  inset: 0;
 }
 #wbody > div {
   padding: 26px;
@@ -1064,153 +1082,6 @@ h2, .big {
   line-height: 1.55;
   margin: 0;
 }
-.now-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-}
-@media (max-width: 768px) {
-  .now-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  .now-grid .now-card-body { padding: 16px; }
-  .now-grid .now-card-sub { margin-bottom: 8px; }
-  .now-grid .now-card-desc { -webkit-line-clamp: 2; line-clamp: 2; }
-}
-.now-card {
-  position: relative;
-  overflow: hidden;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-              border-color 0.3s ease;
-}
-.now-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(255, 74, 61, 0.45);
-}
-.now-card-thumb {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 21 / 9;
-  background: var(--panel);
-  overflow: hidden;
-  border-bottom: 1px solid var(--line);
-}
-.now-card-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-/* Generated title cards (no photo): show the whole letter, not a crop. */
-.now-card-thumb img.art {
-  object-fit: contain;
-}
-.now-card:hover .now-card-thumb img {
-  transform: scale(1.04);
-}
-.now-card-status {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg);
-  padding: 5px 10px;
-  font-size: 12px;
-  color: var(--fg);
-  z-index: 2;
-}
-.now-card-body {
-  padding: 18px 20px;
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-}
-.now-card-cat {
-  font-size: 12px;
-  color: var(--acc);
-  margin-bottom: 6px;
-}
-.now-card-title {
-  margin: 0 0 4px;
-  font: 600 1.45rem / 1.25 var(--disp);
-  color: var(--fg);
-}
-.now-card-sub {
-  margin: 0 0 12px;
-  font-size: 14px;
-  color: var(--mut);
-  line-height: 1.45;
-}
-.now-card-desc {
-  margin: 0 0 14px;
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--soft);
-  flex-grow: 1;
-  /* A summary: the full text and the note are in the details window. */
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  overflow: hidden;
-}
-.now-card-note {
-  display: none;
-}
-.now-card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-.now-card-tags span {
-  font-size: 12px;
-  padding: 3px 8px;
-  border: 1px solid var(--line);
-  color: var(--mut);
-}
-.now-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
-  font-size: 13px;
-}
-.now-card-action {
-  padding: 6px 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  color: var(--acc);
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-.now-card:hover .now-card-action {
-  transform: translateX(3px);
-}
-.now-card-gh {
-  padding: 6px 0;
-  color: var(--mut);
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: color 0.2s ease, border-color 0.2s ease;
-}
-.now-card-gh:hover {
-  color: var(--fg);
-  border-bottom-color: var(--fg);
-}
-
 @media (max-width: 700px) {
   #wbody { grid-template-columns: 1fr; }
   #wbody > img,
@@ -1220,7 +1091,6 @@ h2, .big {
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
-  .wimg-wrap > img { height: 200px; }
   .two, .xp { grid-template-columns: 1fr; }
   .hud.rt, .hud.lt { display: none; }
   .nl { display: none; }
