@@ -391,6 +391,19 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        {/* The ASCII intro starts from these photos; fetch the right one early. */}
+        <link
+          rel="preload"
+          as="image"
+          href="/images/desktop-profile-without-background.png"
+          media="(min-width: 768px)"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href="/images/mobile-profile-without-background.png"
+          media="(max-width: 767.98px)"
+        />
       </head>
       <body>{children}</body>
     </html>

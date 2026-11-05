@@ -11,6 +11,7 @@ import About from "./sections/About"
 import Experience from "./sections/Experience"
 import Work from "./sections/Work"
 import Contact from "./sections/Contact"
+import IntroGate from "./intro/IntroGate"
 
 export default function Portfolio() {
   // Active-link highlighting is driven by the ruler (heading-flow.tsx).
@@ -26,8 +27,8 @@ export default function Portfolio() {
         lerp: 0.09,
       })
       lenisRef.current = lenis
-      // The hero intro is its own screen: no scrolling until it finishes
-      // (Hero restarts Lenis when it clears the intro state).
+      // The intro is its own screen: no scrolling until it finishes
+      // (IntroGate restarts Lenis when it clears the intro state).
       if (document.documentElement.dataset.introState === "playing") {
         lenis.stop()
       }
@@ -62,6 +63,7 @@ export default function Portfolio() {
     // visitor has asked their system for reduced motion.
     <MotionConfig reducedMotion="user">
       <div className="min-h-dvh bg-[var(--bg)] text-[var(--fg)]">
+        <IntroGate />
         <Navbar activeSection={activeSection} onNavigate={handleNavigate} />
         <ScrollRuler />
         <main id="main">

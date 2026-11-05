@@ -6,6 +6,7 @@ import { ICONS, PULL, ORB } from "../../data/heroIcons"
 import { DESKTOP_PHOTO_SRC, MOBILE_PHOTO_SRC } from "../../data/photoSrc"
 import { SKILLS } from "../../data/portfolioData"
 import { lenisRef } from "../../lib/lenis-ref"
+import { INTRO_REPLAY_EVENT } from "../intro/IntroGate"
 
 interface PhotoCell {
   tx: number
@@ -92,6 +93,12 @@ const TL = {
 } as const
 
 const INTRO_SEEN_KEY = "zs-intro-seen"
+/**
+ * The hero's own particle-story intro. Off: the ASCII intro
+ * (components/intro/IntroGate.tsx) plays before the hero instead, and the
+ * hero opens in its settled state. Set true to bring the old intro back.
+ */
+const HERO_INTRO = false
 
 // Ambient floating particles using Motion
 const AMBIENT_PARTICLES = Array.from({ length: 18 }).map((_, i) => ({
@@ -1055,7 +1062,7 @@ export default function Hero() {
       /* storage blocked: treat as a first visit */
     }
 
-    if (reduceMotionNow) {
+    if (reduceMotionNow || !HERO_INTRO) {
       // Settled state straight away, no playback.
       T0 -= 20000
       const X = shadowCanvasRef.current
@@ -1096,11 +1103,15 @@ export default function Hero() {
       desktopImg.onload = null
       mobileImg.onload = null
       // Never leave the page locked behind the intro screen.
-      delete document.documentElement.dataset.introState
+      if (HERO_INTRO) delete document.documentElement.dataset.introState
     }
   }, [])
 
   const handleIntroButton = () => {
+    if (!HERO_INTRO) {
+      window.dispatchEvent(new Event(INTRO_REPLAY_EVENT))
+      return
+    }
     if (document.documentElement.dataset.introState === "playing")
       skipTriggerRef.current?.()
     else replayTriggerRef.current?.()
