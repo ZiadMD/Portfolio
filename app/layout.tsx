@@ -13,8 +13,10 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 })
 
+// Variable font (all weights in one file). Asking for weights 400 and 700
+// separately broke the Turbopack dev build (Next 16.3.3): "next/font/google
+// queries have exactly one entry" on the bold latin file.
 const jetbrainsMono = JetBrains_Mono({
-  weight: ["400", "700"],
   subsets: ["latin"],
   variable: "--font-mono",
   display: "swap",
